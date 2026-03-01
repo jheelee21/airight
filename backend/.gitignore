@@ -1,2 +1,5 @@
 .venv
 .env
+*.adk
+*__pycache__/
+.ruff_cache/
