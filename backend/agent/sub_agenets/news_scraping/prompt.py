@@ -37,6 +37,7 @@ Continue executing varied search queries until either the target of 3 articles p
 or you have exhausted multiple distinct search strategies and angles. Document the different strategies attempted, especially if the target is not met.
 Filter and Verify: Critically evaluate search results. Ensure articles genuinely relate to the specified topic, event, or entity, and confirm they have
 a reputable source and are published within the specified date range. Focus on quality and relevance over quantity. Discard duplicates and low-confidence results.
+Make sure to verify all the urls are reachable and the content is accessible to the public (not behind paywalls or restricted access).
 
 Output Requirements:
 
