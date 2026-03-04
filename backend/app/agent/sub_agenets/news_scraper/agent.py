@@ -5,7 +5,7 @@ from google.adk.tools import google_search
 
 MODEL = "gemini-2.5-flash"
 
-news_scraping_agent = LlmAgent(
+news_scraper_agent = LlmAgent(
     model=MODEL,
     name="news_scraping_agent",
     description="A highly accurate AI assistant specialized in scraping and analyzing recent news articles.",
