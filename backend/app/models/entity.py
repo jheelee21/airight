@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from database import Base
 
@@ -10,7 +10,6 @@ class Entity(Base):
 
     Not necessarily owned by the business. It can be a third party.
     """
-
     __tablename__ = "entity"
 
     id = Column(Integer, primary_key=True, index=True)

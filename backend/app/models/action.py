@@ -2,13 +2,11 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from database import Base
 
-
 class Action(Base):
     """
     Action represents a mitigation strategy or response plan for a RiskFactor.
     Types: Avoidance, Mitigation, Transfer, Acceptance
     """
-
     __tablename__ = "action"
 
     id = Column(Integer, primary_key=True, index=True)

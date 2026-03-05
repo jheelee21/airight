@@ -3,7 +3,6 @@ from typing import List, Optional
 from datetime import datetime
 from .action import ActionSchema
 
-
 class RiskBase(BaseModel):
     business_id: int
     target_type: str = Field(..., pattern="^(node|route)$")

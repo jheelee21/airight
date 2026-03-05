@@ -9,7 +9,6 @@ class Risk(Base):
     Risk represents a potential threat to a node or route.
     Categories: geological, political, physical, economic
     """
-
     __tablename__ = "risk"
 
     id = Column(Integer, primary_key=True, index=True)

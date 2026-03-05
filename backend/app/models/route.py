@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from database import Base
 
@@ -10,7 +10,6 @@ class Route(Base):
     Contains information about transportation, lead time, cost,
     starting / destination nodes, and the material that is transported.
     """
-
     __tablename__ = "route"
 
     id = Column(Integer, primary_key=True, index=True)
