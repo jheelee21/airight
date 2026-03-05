@@ -16,8 +16,5 @@ root_agent = LlmAgent(
     instruction=prompt.ROOT_AGENT_PROMPT,
     tools=[
         AgentTool(agent=news_scraper_agent),
-        AgentTool(agent=business_analyst_agent),
-        AgentTool(agent=risk_analyst_agent),
-        AgentTool(agent=action_item_creator_agent),
     ],
 )
