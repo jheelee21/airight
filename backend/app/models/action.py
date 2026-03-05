@@ -11,11 +11,11 @@ class Action(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     risk_id = Column(Integer, ForeignKey("risk.id"), nullable=False)
-    
+
     action_type = Column(String, nullable=False)
     description = Column(String, nullable=False)
     estimated_cost = Column(Float, nullable=True)
-    expected_impact = Column(Float, nullable=True) # 0.0 to 1.0 improvement
+    expected_impact = Column(Float, nullable=True)  # 0.0 to 1.0 improvement
     implementation_status = Column(String, nullable=False)
 
     risk = relationship("Risk", back_populates="actions")

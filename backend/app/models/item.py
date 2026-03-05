@@ -14,4 +14,3 @@ class Item(Base):
     business_id = Column(Integer, ForeignKey("business.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
-    

@@ -11,7 +11,6 @@ class ActionBase(BaseModel):
 
 class ActionCreate(ActionBase):
     risk_id: int
-    
 
 class ActionSchema(ActionBase):
     id: int
