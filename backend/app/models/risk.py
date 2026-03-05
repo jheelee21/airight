@@ -14,9 +14,9 @@ class Risk(Base):
     id = Column(Integer, primary_key=True, index=True)
     business_id = Column(Integer, ForeignKey("business.id"), nullable=False)
     
-    # Target can be a 'node' or a 'route'
+    # Target can be a 'entity' or a 'route'
     target_type = Column(String, nullable=False) 
-    target_id = Column(Integer, nullable=False)  # ID of the node or route
+    target_id = Column(Integer, nullable=False)  # ID of the entity or route
     
     category = Column(String, nullable=False)
     severity = Column(Float, nullable=False)     # 0.0 to 1.0

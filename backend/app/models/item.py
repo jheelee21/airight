@@ -2,12 +2,12 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.sql import func
 from database import Base
 
-class Material(Base):
+class Item(Base):
     """
-    Material is a raw material, a component, or a finished product.
+    Item is a raw material, a component, or a finished product.
     category: raw material, component, finished product
     """
-    __tablename__ = "material"
+    __tablename__ = "item"
 
     id = Column(Integer, primary_key=True, index=True)
     category = Column(String, nullable=False)

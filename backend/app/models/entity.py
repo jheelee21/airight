@@ -3,14 +3,14 @@ from sqlalchemy.sql import func
 from database import Base
 
 
-class Node(Base):
+class Entity(Base):
     """
-    Node is a physical location that is part of a business's supply chain.
+    Entity is a physical location that is part of a business's supply chain.
     E.g. factory, warehouse, distribution center, supplier, oem, etc.
 
     Not necessarily owned by the business. It can be a third party.
     """
-    __tablename__ = "node"
+    __tablename__ = "entity"
 
     id = Column(Integer, primary_key=True, index=True)
     business_id = Column(Integer, ForeignKey("business.id"), nullable=False)
