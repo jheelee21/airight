@@ -8,6 +8,7 @@ class User(Base):
     User is a person who uses the system.
     E.g. a risk manager of the business.
     """
+
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True, index=True)

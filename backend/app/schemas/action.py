@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 
+
 class ActionBase(BaseModel):
     action_type: str
     description: str
@@ -11,7 +12,7 @@ class ActionBase(BaseModel):
 
 class ActionCreate(ActionBase):
     risk_id: int
-    
+
 
 class ActionSchema(ActionBase):
     id: int

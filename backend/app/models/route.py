@@ -10,6 +10,7 @@ class Route(Base):
     Contains information about transportation, lead time, cost,
     starting / destination nodes, and the material that is transported.
     """
+
     __tablename__ = "route"
 
     id = Column(Integer, primary_key=True, index=True)

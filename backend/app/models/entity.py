@@ -10,6 +10,7 @@ class Entity(Base):
 
     Not necessarily owned by the business. It can be a third party.
     """
+
     __tablename__ = "entity"
 
     id = Column(Integer, primary_key=True, index=True)

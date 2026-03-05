@@ -8,6 +8,7 @@ class Business(Base):
     Business is a company that owns one or more nodes.
     It has its own supply chain made out of nodes.
     """
+
     __tablename__ = "business"
 
     id = Column(Integer, primary_key=True, index=True)

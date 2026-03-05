@@ -3,6 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from .action import ActionSchema
 
+
 class RiskBase(BaseModel):
     business_id: int
     target_type: str = Field(..., pattern="^(node|route)$")
@@ -12,8 +13,10 @@ class RiskBase(BaseModel):
     probability: float = Field(..., ge=0.0, le=1.0)
     description: str
 
+
 class RiskCreate(RiskBase):
     pass
+
 
 class RiskSchema(RiskBase):
     id: int
@@ -22,7 +25,8 @@ class RiskSchema(RiskBase):
     class Config:
         from_attributes = True
 
+
 class RiskScore(BaseModel):
     risk_factor_id: int
-    score: float # severity * probability
-    status: str # e.g., low, medium, high
+    score: float  # severity * probability
+    status: str  # e.g., low, medium, high
