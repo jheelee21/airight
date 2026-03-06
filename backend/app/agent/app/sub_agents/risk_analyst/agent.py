@@ -1,22 +1,18 @@
 from google.adk.agents import LlmAgent
-from google.adk.tools import google_search
 
 from . import prompt
 
 MODEL = "gemini-3.1-flash-lite-preview"
 
-# NOTE: google_search is a built-in tool and CANNOT be combined with FunctionTools.
-# The business profile and existing risks are fetched by root_agent via FunctionTool
-# and injected into this agent's input as structured context.
 risk_analyst_agent = LlmAgent(
     model=MODEL,
     name="risk_analyst_agent",
     description=(
         "Analyzes supply chain risks for a manufacturer. Receives the company's "
-        "full profile (entities, items, routes) and existing risks from the "
-        "orchestrator, plus scraped news articles. Uses Google Search for "
-        "supplementary intelligence. Returns a structured JSON risk report."
+        "full profile (entities, items, routes), existing risks, and pre-scraped "
+        "news articles directly from the orchestrator. Returns a structured JSON "
+        "risk report in a single reasoning pass — no tool calls required."
     ),
     instruction=prompt.RISK_ANALYSIS_PROMPT,
-    tools=[google_search],
+    tools=[],           # no tools — all context is injected by root_agent
 )

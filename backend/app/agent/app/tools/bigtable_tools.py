@@ -945,3 +945,555 @@ def create_supply_chain(payload: str) -> str:
         return json.dumps({"error": str(exc)})
     finally:
         session.close()
+
+# ---------------------------------------------------------------------------
+# Tool — create_risk
+# ---------------------------------------------------------------------------
+
+def create_risk(
+    business_id: int,
+    target_type: str,
+    target_name: str,
+    category: str,
+    severity: float,
+    probability: float,
+    description: str,
+) -> str:
+    """
+    Insert a new risk row linked to a named entity or route.
+
+    target_name is resolved to a target_id automatically:
+      - If target_type == 'entity': looks up entity.name WHERE business_id matches
+      - If target_type == 'route':  looks up route.name  WHERE business_id matches
+      - Falls back to the first entity for the business if no match is found
+
+    severity and probability must be 0.0–1.0.
+
+    Returns JSON with the new risk id, or an error object.
+    """
+    session = _get_session()
+    try:
+        # Resolve target_name → target_id
+        if target_type == "route":
+            row = session.execute(
+                text("SELECT id FROM route WHERE business_id = :bid AND name = :name LIMIT 1"),
+                {"bid": business_id, "name": target_name},
+            ).fetchone()
+        else:
+            row = session.execute(
+                text("SELECT id FROM entity WHERE business_id = :bid AND name = :name LIMIT 1"),
+                {"bid": business_id, "name": target_name},
+            ).fetchone()
+
+        if row is None:
+            # Fallback to first entity
+            row = session.execute(
+                text("SELECT id FROM entity WHERE business_id = :bid ORDER BY id LIMIT 1"),
+                {"bid": business_id},
+            ).fetchone()
+
+        if row is None:
+            return json.dumps({"error": f"No entity/route found for business_id={business_id}"})
+
+        target_id = row[0]
+
+        result = session.execute(
+            text(
+                """
+                INSERT INTO risk
+                    (business_id, target_type, target_id,
+                     category, severity, probability, description)
+                VALUES
+                    (:bid, :ttype, :tid, :cat, :sev, :prob, :desc)
+                RETURNING id
+                """
+            ),
+            {
+                "bid":   business_id,
+                "ttype": target_type,
+                "tid":   target_id,
+                "cat":   category,
+                "sev":   round(severity, 4),
+                "prob":  round(probability, 4),
+                "desc":  description,
+            },
+        ).fetchone()
+        session.commit()
+
+        return json.dumps({
+            "id":          result[0],
+            "business_id": business_id,
+            "target_type": target_type,
+            "target_id":   target_id,
+            "category":    category,
+            "severity":    severity,
+            "probability": probability,
+            "description": description,
+        })
+
+    except Exception as exc:
+        session.rollback()
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# Tool — create_action
+# ---------------------------------------------------------------------------
+
+def create_action_items(
+    risk_id: int,
+    action_type: str,
+    description: str,
+    estimated_cost: Optional[float] = None,
+    expected_impact: Optional[float] = None,
+    implementation_status: str = "Suggested",
+) -> str:
+    """
+    Insert a new action row linked to an existing risk.
+
+    action_type should encode urgency, e.g. "IMMEDIATE – Mitigation".
+    expected_impact is 0.0–1.0 (fraction of risk resolved if action taken).
+
+    Returns JSON with the new action id, or an error object.
+    """
+    session = _get_session()
+    try:
+        result = session.execute(
+            text(
+                """
+                INSERT INTO action
+                    (risk_id, action_type, description,
+                     estimated_cost, expected_impact, implementation_status)
+                VALUES
+                    (:rid, :atype, :desc, :cost, :impact, :status)
+                RETURNING id
+                """
+            ),
+            {
+                "rid":    risk_id,
+                "atype":  action_type,
+                "desc":   description,
+                "cost":   estimated_cost,
+                "impact": expected_impact,
+                "status": implementation_status,
+            },
+        ).fetchone()
+        session.commit()
+
+        return json.dumps({
+            "id":                    result[0],
+            "risk_id":               risk_id,
+            "action_type":           action_type,
+            "description":           description,
+            "estimated_cost":        estimated_cost,
+            "expected_impact":       expected_impact,
+            "implementation_status": implementation_status,
+        })
+
+    except Exception as exc:
+        session.rollback()
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# Tool — create_news
+# ---------------------------------------------------------------------------
+
+def create_news(
+    business_id: int,
+    title: str,
+    content: str,
+    source: str,
+    url: Optional[str] = None,
+    published_at: Optional[str] = None,
+    risk_id: Optional[int] = None,
+) -> str:
+    """
+    Insert a news article linked to a business and optionally a risk.
+
+    published_at accepts ISO date strings: "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS".
+    If omitted, defaults to the current UTC timestamp.
+
+    Returns JSON with the new news id, or an error object.
+    """
+    session = _get_session()
+    try:
+        result = session.execute(
+            text(
+                """
+                INSERT INTO news
+                    (business_id, risk_id, title, content, source, url, published_at)
+                VALUES
+                    (:bid, :rid, :title, :content, :source, :url,
+                     COALESCE(CAST(:pub AS TIMESTAMP), NOW()))
+                RETURNING id
+                """
+            ),
+            {
+                "bid":     business_id,
+                "rid":     risk_id,
+                "title":   title,
+                "content": content,
+                "source":  source,
+                "url":     url,
+                "pub":     published_at,
+            },
+        ).fetchone()
+        session.commit()
+
+        return json.dumps({
+            "id":           result[0],
+            "business_id":  business_id,
+            "risk_id":      risk_id,
+            "title":        title,
+            "source":       source,
+            "published_at": published_at,
+        })
+
+    except Exception as exc:
+        session.rollback()
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
+
+
+def save_pipeline_output(payload: str) -> str:
+    """
+    Persist the full agent pipeline output to the database by calling
+    create_risk, create_action, and create_news for each record.
+
+    Mapping rules
+    -------------
+    new_risks
+        severity / likelihood : agent outputs 1–5 → normalised to 0.0–1.0
+        target_type / target_name : resolved from risk_ref in action_plan
+          (falls back to "entity" / first entity name if no risk_ref match)
+
+    action_plan
+        urgency + action_type : merged as "URGENCY – ActionType" string
+        title prepended to description to preserve the card headline
+
+    news articles
+        risk_id : matched by entity name → most recent risk on that entity
+          (nullable — articles with no matching entity are still saved)
+
+    Args:
+        payload: JSON string of the full pipeline output object.
+
+    Returns:
+        JSON summary: { status, risks_inserted, actions_inserted, news_inserted }
+        or { error } on failure.
+    """
+    try:
+        data = json.loads(payload)
+    except Exception as exc:
+        return json.dumps({"error": f"Invalid JSON payload: {exc}"})
+
+    business_id: int = data["business_id"]
+    errors: list[str] = []
+
+    # ── Build risk_ref lookup (title → ref metadata) from action_plan ──────
+    risk_ref_map: dict[str, dict] = {}
+    for plan in data.get("action_plan", []):
+        ref = plan.get("risk_ref", {})
+        title = ref.get("title", "")
+        if title:
+            risk_ref_map[title] = ref
+
+    # ── 1. Insert risks, collect title → new DB id ──────────────────────────
+    title_to_risk_id: dict[str, int] = {}
+
+    for risk in data.get("risks", {}).get("new_risks", []):
+        title: str = risk.get("title", "Unnamed Risk")
+        ref = risk_ref_map.get(title, {})
+
+        target_type: str = ref.get("target_type", "entity")
+        target_name: str = ref.get("target_name", "")
+
+        # Normalise 1–5 scale → 0.0–1.0
+        severity:    float = round(risk.get("severity",   3) / 5.0, 2)
+        probability: float = round(risk.get("likelihood", 3) / 5.0, 2)
+
+        description = f"{title}: {risk.get('description', '')}"
+
+        result_str = create_risk(
+            business_id=business_id,
+            target_type=target_type,
+            target_name=target_name,
+            category=risk.get("category", "Operational"),
+            severity=severity,
+            probability=probability,
+            description=description,
+        )
+        result = json.loads(result_str)
+
+        if "error" in result:
+            errors.append(f"Risk '{title}': {result['error']}")
+        else:
+            title_to_risk_id[title] = result["id"]
+
+    # ── 2. Insert actions ────────────────────────────────────────────────────
+    actions_inserted = 0
+
+    for plan in data.get("action_plan", []):
+        risk_title: str = plan.get("risk_ref", {}).get("title", "")
+        risk_db_id: Optional[int] = title_to_risk_id.get(risk_title)
+
+        if risk_db_id is None:
+            errors.append(f"Action skipped — no risk_id found for '{risk_title}'")
+            continue
+
+        for item in plan.get("action_items", []):
+            urgency:    str = item.get("urgency", "")
+            atype:      str = item.get("action_type", "Mitigation")
+            item_title: str = item.get("title", "")
+            item_desc:  str = item.get("description", "")
+
+            composite_type = f"{urgency} – {atype}" if urgency else atype
+            full_desc = f"{item_title}. {item_desc}".strip(". ") if item_title else item_desc
+
+            result_str = create_action(
+                risk_id=risk_db_id,
+                action_type=composite_type,
+                description=full_desc,
+                estimated_cost=item.get("estimated_cost"),
+                expected_impact=item.get("expected_impact"),
+                implementation_status=item.get("implementation_status", "Suggested"),
+            )
+            result = json.loads(result_str)
+
+            if "error" in result:
+                errors.append(f"Action '{item_title}': {result['error']}")
+            else:
+                actions_inserted += 1
+
+    # ── 3. Insert news articles ──────────────────────────────────────────────
+    # Build entity-name → latest risk_id map for linking
+    entity_risk_map: dict[str, int] = {}
+    for t, rid in title_to_risk_id.items():
+        ref = risk_ref_map.get(t, {})
+        ename = ref.get("target_name", "")
+        if ename:
+            entity_risk_map[ename] = rid
+
+    news_inserted = 0
+
+    for article in data.get("news_scraping", {}).get("articles", []):
+        linked_risk_id: Optional[int] = None
+        for ename in article.get("affected_profile_entities", []):
+            if ename in entity_risk_map:
+                linked_risk_id = entity_risk_map[ename]
+                break
+
+        result_str = create_news(
+            business_id=business_id,
+            title=article.get("title", ""),
+            content=article.get("supply_chain_signal", ""),
+            source=article.get("source", ""),
+            url=article.get("url"),
+            published_at=article.get("publication_date"),
+            risk_id=linked_risk_id,
+        )
+        result = json.loads(result_str)
+
+        if "error" in result:
+            errors.append(f"News '{article.get('title', '')}': {result['error']}")
+        else:
+            news_inserted += 1
+
+    return json.dumps({
+        "status":           "ok" if not errors else "partial",
+        "business_id":      business_id,
+        "risks_inserted":   len(title_to_risk_id),
+        "actions_inserted": actions_inserted,
+        "news_inserted":    news_inserted,
+        "errors":           errors,
+    })
+
+# ---------------------------------------------------------------------------
+# Tool – create_risks
+# Used by: root_agent (Step 4.5 — after risk_analyst, before action_item_creator)
+# ---------------------------------------------------------------------------
+
+def create_risks(business_id: int, risks_json: str) -> str:
+    """
+    Persist newly identified risks to the database and return their integer IDs.
+
+    This is the bridge between risk_analyst_agent (which produces temporary string
+    identifiers like "R-001") and action_item_creator_agent (which needs real integer
+    foreign keys to insert action rows).  The root_agent must call this tool after
+    receiving new_risks from risk_analyst_agent and before delegating to
+    action_item_creator_agent.
+
+    Target resolution
+    -----------------
+    The risk analyst output uses ``target_name`` (a human-readable string) and
+    ``target_type`` ("entity" | "route").  This function resolves each name to
+    the correct integer ``target_id`` by querying the entity / route tables for
+    the given business.  If a name cannot be resolved the row is still inserted
+    with ``target_id = NULL`` and a warning is attached to the returned object.
+
+    Args:
+        business_id: Integer primary key of the business these risks belong to.
+        risks_json:  JSON string — the array returned by risk_analyst_agent.
+                     Each element must have at minimum:
+                       {
+                         "title":       "<string>",
+                         "description": "<string>",
+                         "category":    "<Supply Chain|Geopolitical|Financial|
+                                          Operational|Climate|Regulatory>",
+                         "severity":    <1-5 integer>,
+                         "likelihood":  <1-5 integer>,   ← risk analyst field name
+                         "target_type": "entity | route",
+                         "target_name": "<exact entity or route name>"
+                       }
+
+    Returns:
+        JSON string with the list of saved risk objects, each augmented with its
+        real integer ``risk_id``::
+
+            {
+              "risks_saved": <int>,
+              "saved": [
+                {
+                  "risk_id":     <int>,          ← real DB primary key
+                  "title":       "<string>",
+                  "category":    "<string>",
+                  "severity":    <int>,
+                  "probability": <float>,        ← normalised from likelihood/5
+                  "target_type": "entity|route",
+                  "target_name": "<string>",
+                  "target_id":   <int|null>,
+                  "warning":     "<string|null>" ← set if target_name unresolved
+                }
+              ]
+            }
+
+        On failure a JSON error object is returned instead.
+    """
+    try:
+        risks = json.loads(risks_json)
+    except (json.JSONDecodeError, TypeError) as exc:
+        return json.dumps({"error": f"Invalid JSON input: {exc}"})
+
+    if not isinstance(risks, list):
+        return json.dumps({"error": "risks_json must be a JSON array."})
+
+    session = _get_session()
+    try:
+        # ------------------------------------------------------------------
+        # Pre-load name → id maps for entities and routes owned by this business
+        # ------------------------------------------------------------------
+        entity_map: dict[str, int] = {
+            row[0]: row[1]
+            for row in session.execute(
+                text("SELECT name, id FROM entity WHERE business_id = :bid"),
+                {"bid": business_id},
+            ).fetchall()
+        }
+        route_map: dict[str, int] = {
+            row[0]: row[1]
+            for row in session.execute(
+                text("SELECT name, id FROM route WHERE business_id = :bid"),
+                {"bid": business_id},
+            ).fetchall()
+        }
+
+        saved = []
+        for risk in risks:
+            target_type = risk.get("target_type", "entity")
+            target_name = risk.get("target_name", "")
+            warning = None
+
+            # Resolve name → integer id
+            if target_type == "entity":
+                target_id = entity_map.get(target_name)
+            elif target_type == "route":
+                target_id = route_map.get(target_name)
+            else:
+                target_id = None
+
+            if target_id is None:
+                warning = (
+                    f"Could not resolve target_name '{target_name}' "
+                    f"(target_type='{target_type}') to a database ID. "
+                    "Row inserted with target_id = NULL."
+                )
+
+            # Both severity and probability are 0.0-1.0 floats; clamp defensively.
+            def _clamp(val, default: float) -> float:
+                try:
+                    return round(min(1.0, max(0.0, float(val))), 4)
+                except (TypeError, ValueError):
+                    return default
+
+            severity    = _clamp(risk.get("severity"),    0.5)
+            probability = _clamp(
+                risk.get("likelihood") or risk.get("probability"), 0.5
+            )
+
+            row = session.execute(
+                text(
+                    """
+                    INSERT INTO risk (
+                        business_id,
+                        category,
+                        severity,
+                        probability,
+                        description,
+                        target_type,
+                        target_id
+                    )
+                    VALUES (
+                        :bid,
+                        :category,
+                        :severity,
+                        :probability,
+                        :description,
+                        :target_type,
+                        :target_id
+                    )
+                    RETURNING id, category, severity, probability, description,
+                              target_type, target_id
+                    """
+                ),
+                {
+                    "bid":         business_id,
+                    "category":    risk.get("category", "Operational"),
+                    "severity":    severity,
+                    "probability": probability,
+                    "description": (
+                        risk.get("description")
+                        or risk.get("title")
+                        or "No description provided."
+                    ),
+                    "target_type": target_type,
+                    "target_id":   target_id,
+                },
+            ).fetchone()
+
+            saved.append({
+                "risk_id":     row[0],   # ← real integer DB primary key
+                "category":    row[1],
+                "severity":    row[2],
+                "probability": float(row[3]),
+                "description": row[4],
+                "target_type": row[5],
+                "target_id":   row[6],
+                "title":       risk.get("title", ""),
+                "target_name": target_name,
+                "warning":     warning,
+            })
+
+        session.commit()
+        return json.dumps({"risks_saved": len(saved), "saved": saved}, default=str)
+
+    except Exception as exc:
+        session.rollback()
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
