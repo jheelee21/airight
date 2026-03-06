@@ -5,6 +5,9 @@ import { ExternalLink, AlertTriangle, ShieldCheck, ArrowRight, Info } from "luci
 import { RiskIntelligence, MitigationStep } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 
+import { useState } from "react";
+import { useAuthStore } from "@/store/authStore";
+
 interface RiskCardProps {
   risk: RiskIntelligence;
 }
@@ -27,8 +30,6 @@ export default function RiskCard({ risk }: { risk: any }) {
   // Map backend risk to UI (adding fallback dummy data for fields not in DB yet)
   const displayTitle = risk.description.split('.')[0]; // Use first sentence as title
   const displaySynopsis = risk.description;
-  const sourceName = "Airight Intelligence";
-  const detectedAt = "Real-time";
 
   return (
     <motion.div
@@ -57,24 +58,24 @@ export default function RiskCard({ risk }: { risk: any }) {
         </p>
       </div>
 
-      {/* Meta */}
-      <div className="flex items-center justify-between text-xs py-3 border-y border-zinc-100 dark:border-zinc-800">
-        <div className="flex items-center gap-1.5 text-blue-600 font-medium italic">
-          {sourceName}
+      {/* Action Items */}
+      <div className="space-y-4 pt-2">
+        <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2">
+          <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Action Items</h4>
+          <span className="text-[10px] font-medium text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+            {risk.actions?.length || 0} Total
+          </span>
         </div>
-        <span className="text-zinc-400">{detectedAt}</span>
-      </div>
-
-      {/* Mitigation Roadmap */}
-      <div className="space-y-3">
-        <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Mitigation Roadmap</h4>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {risk.actions && risk.actions.length > 0 ? (
             risk.actions.map((action: any) => (
               <MitigationItem key={action.id} step={{ id: action.id, action: action.description, status: action.implementation_status }} />
             ))
           ) : (
-            <p className="text-xs text-zinc-400 italic">No actions planned yet.</p>
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400 italic bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
+              <ShieldCheck className="w-3.5 h-3.5 opacity-50" />
+              No immediate actions requiring attention.
+            </div>
           )}
         </div>
       </div>
@@ -87,19 +88,85 @@ export default function RiskCard({ risk }: { risk: any }) {
 }
 
 function MitigationItem({ step }: { step: MitigationStep }) {
-  const getStatusColor = (status: MitigationStep["status"]) => {
-    switch (status) {
-      case "Resolved": return "bg-emerald-500";
-      case "In Progress": return "bg-blue-500";
-      default: return "bg-zinc-300 dark:bg-zinc-600";
+  const [status, setStatus] = useState(step.status);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const getStatusConfig = (currentStatus: string) => {
+    const s = currentStatus.toLowerCase();
+    if (s === "complete" || s === "resolved") {
+      return { 
+        text: "text-emerald-600 dark:text-emerald-400", 
+        label: "Complete",
+        bg: "bg-emerald-500/10 border-emerald-500/20"
+      };
+    }
+    if (s === "doing" || s === "in progress") {
+      return { 
+        text: "text-blue-600 dark:text-blue-400", 
+        label: "Doing",
+        bg: "bg-blue-500/10 border-blue-500/20"
+      };
+    }
+    return { 
+      text: "text-zinc-500 dark:text-zinc-400", 
+      label: "Planned",
+      bg: "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
+    };
+  };
+
+  const handleToggle = async () => {
+    if (isUpdating) return;
+    
+    // Cycle: Planned -> Doing -> Complete -> Planned
+    const s = status.toLowerCase();
+    let nextStatus = "Planned";
+    if (s === "planned") nextStatus = "Doing";
+    else if (s === "doing" || s === "in progress") nextStatus = "Complete";
+    else nextStatus = "Planned";
+
+    // Optimistic update
+    setStatus(nextStatus as MitigationStep["status"]);
+    setIsUpdating(true);
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/action/${step.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ implementation_status: nextStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+    } catch (error) {
+      console.error("Status update failed:", error);
+      // Revert on error
+      setStatus(status);
+      alert("Failed to sync status with server.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
+  const config = getStatusConfig(status);
+
   return (
-    <div className="flex items-center gap-3 group">
-      <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", getStatusColor(step.status))} />
-      <span className="text-xs text-zinc-600 dark:text-zinc-400 flex-1 leading-snug">{step.action}</span>
-      <ArrowRight className="w-3 h-3 text-zinc-300 dark:text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div 
+      className={cn(
+        "flex flex-col gap-1.5 group cursor-pointer p-2 -m-2 rounded-xl border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-all",
+        isUpdating && "opacity-60 grayscale cursor-wait"
+      )}
+      onClick={handleToggle}
+    >
+      <div className="flex items-start gap-3">
+        <div className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 shadow-[0_0_8px_rgba(0,0,0,0.1)] transition-colors duration-500", config.text.replace('text-', 'bg-'))} />
+        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex-1 leading-snug group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
+          {step.action}
+        </span>
+        <div className={cn("text-[10px] font-bold uppercase w-16 text-center py-0.5 rounded-sm tracking-tighter transition-all transform group-active:scale-95 border", config.bg, config.text)}>
+          {config.label}
+        </div>
+      </div>
     </div>
   );
 }

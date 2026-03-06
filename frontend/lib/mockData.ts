@@ -1,7 +1,7 @@
 export interface MitigationStep {
   id: string;
   action: string;
-  status: "Suggested" | "In Progress" | "Resolved";
+  status: "Planned" | "Doing" | "Complete";
 }
 
 export interface RiskIntelligence {
@@ -29,9 +29,9 @@ export const MOCK_RISKS: RiskIntelligence[] = [
     sourceName: "Global Trade Daily",
     detectedAt: "2h ago",
     mitigationRoadmap: [
-      { id: "m1", action: "Identify alternative suppliers in South America", status: "In Progress" },
-      { id: "m2", action: "Negotiate advance purchase agreements", status: "Suggested" },
-      { id: "m3", action: "Review regional compliance documentation", status: "Suggested" },
+      { id: "m1", action: "Identify alternative suppliers in South America", status: "Doing" },
+      { id: "m2", action: "Negotiate advance purchase agreements", status: "Planned" },
+      { id: "m3", action: "Review regional compliance documentation", status: "Planned" },
     ],
   },
   {
@@ -45,8 +45,8 @@ export const MOCK_RISKS: RiskIntelligence[] = [
     sourceName: "Tech Quarterly",
     detectedAt: "5h ago",
     mitigationRoadmap: [
-      { id: "m4", action: "Buffer stock of critical chipsets for next 6 months", status: "Resolved" },
-      { id: "m5", action: "Source secondary assembly partners", status: "Suggested" },
+      { id: "m4", action: "Buffer stock of critical chipsets for next 6 months", status: "Complete" },
+      { id: "m5", action: "Source secondary assembly partners", status: "Planned" },
     ],
   },
 ];

@@ -12,6 +12,13 @@ class ActionBase(BaseModel):
 class ActionCreate(ActionBase):
     risk_id: int
 
+class ActionUpdate(BaseModel):
+    action_type: Optional[str] = None
+    description: Optional[str] = None
+    estimated_cost: Optional[float] = None
+    expected_impact: Optional[float] = None
+    implementation_status: Optional[str] = None
+
 class ActionSchema(ActionBase):
     id: int
     risk_id: int

@@ -16,7 +16,7 @@ import ReactFlow, {
   Handle,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Factory, Warehouse, Cpu, Truck, HardHat } from 'lucide-react';
+import { Factory, Warehouse, Cpu, Truck, HardHat, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Custom Node Types
@@ -67,12 +67,18 @@ const EntityNode = ({ data }: { data: any }) => {
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center p-3 rounded-2xl border-4 transition-all duration-500 min-h-[120px] relative w-full h-full bg-white dark:bg-zinc-950",
+      "flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-500 min-h-[120px] relative w-full h-full bg-white dark:bg-zinc-950",
       nodeStyle.border,
-      isInternal ? "shadow-xl ring-2 ring-emerald-500/10" : "",
-      data.hasRisk ? "ring-4 ring-offset-4 ring-red-500/50" : ""
+      isInternal ? "shadow-xl ring-2 ring-emerald-500/10 border-8" : "border-4",
+      data.hasRisk ? "ring-8 ring-offset-4 ring-red-500/50" : ""
     )}
     >
+      {/* Risk Indicator Icon */}
+      {data.hasRisk && (
+        <div className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-xl animate-bounce z-20">
+          <AlertTriangle className="w-4 h-4 text-white" />
+        </div>
+      )}
       <Handle 
         type="target" 
         position={Position.Top} 
@@ -268,9 +274,21 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
               reachableToOEM.has(e.end_entity_id.toString())
             );
 
+            // Mapping for focus effect
+            const entityToRiskMap: Record<string, string> = {};
+            const routeToRiskMap: Record<string, string> = {};
+            
+            riskData.forEach((r: any) => {
+              if (r.target_type === 'entity') {
+                entityToRiskMap[r.target_id.toString()] = r.id.toString();
+              } else if (r.target_type === 'route') {
+                routeToRiskMap[r.target_id.toString()] = r.id.toString();
+              }
+            });
+
             // Risky IDs (for highlighting)
-            const riskyEntityIds = new Set(riskData.filter((r: any) => r.target_type === 'entity').map((r: any) => r.target_id.toString()));
-            const riskyRouteIds = new Set(riskData.filter((r: any) => r.target_type === 'route').map((r: any) => r.target_id.toString()));
+            const riskyEntityIds = new Set(Object.keys(entityToRiskMap));
+            const riskyRouteIds = new Set(Object.keys(routeToRiskMap));
 
             // Nodes associated with risks in the reachable set
             const associatedRiskyNodeIds = new Set(riskyEntityIds);
@@ -302,6 +320,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                     label: n.name, 
                     category: category,
                     hasRisk: hasRisk,
+                    riskId: entityToRiskMap[n.id.toString()]
                   }
                 };
               });
@@ -325,6 +344,9 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                 labelBgStyle: { fill: '#fff', fillOpacity: 0.9 },
                 labelBgPadding: [6, 4],
                 labelBgBorderRadius: 4,
+                data: {
+                  riskId: routeToRiskMap[e.id.toString()]
+                }
               };
             });
 
@@ -349,13 +371,37 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={(_, node) => {
-          const element = document.getElementById(`risk-${node.id}`);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
-            setTimeout(() => {
-              element.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
-            }, 2000);
+          const riskId = node.data.riskId;
+          if (riskId) {
+            const element = document.getElementById(`risk-${riskId}`);
+            if (element) {
+              window.scrollTo({
+                top: element.getBoundingClientRect().top + window.scrollY - 150,
+                behavior: 'smooth'
+              });
+              
+              element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
+              setTimeout(() => {
+                element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
+              }, 3000);
+            }
+          }
+        }}
+        onEdgeClick={(_, edge) => {
+          const riskId = edge.data?.riskId;
+          if (riskId) {
+            const element = document.getElementById(`risk-${riskId}`);
+            if (element) {
+              window.scrollTo({
+                top: element.getBoundingClientRect().top + window.scrollY - 150,
+                behavior: 'smooth'
+              });
+              
+              element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
+              setTimeout(() => {
+                element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
+              }, 3000);
+            }
           }
         }}
         fitView
