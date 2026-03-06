@@ -162,7 +162,7 @@ def seed_data():
                 description="Strategic stockpile of 12-month supply of Tensor chipsets.",
                 estimated_cost=5000000.0,
                 expected_impact=0.8,
-                implementation_status="Doing"
+                implementation_status="In Progress"
             ),
             Action(
                 risk_id=risks[1].id,

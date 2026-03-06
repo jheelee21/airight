@@ -82,9 +82,19 @@ async def run_agent_flow(payload: AgentFlowRequest):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to run agents flow: {exc}")
 
+    import json
+    biz_id = None
+    if final_response:
+        try:
+            data = json.loads(final_response)
+            biz_id = data.get("business_id")
+        except:
+            pass
+
     return AgentFlowResponse(
         success=True,
         input_mode=input_mode,
         events=events,
         final_response=final_response,
+        business_id=biz_id,
     )

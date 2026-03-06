@@ -18,3 +18,4 @@ class AgentFlowResponse(BaseModel):
     input_mode: str
     events: List[str]
     final_response: Optional[str] = None
+    business_id: int

@@ -10,8 +10,7 @@ import { AlertCircle, TrendingUp, ShieldAlert, Globe, Filter, Search, Zap } from
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  const context = useCompanyStore((state: any) => state.context);
-  const setContext = useCompanyStore((state: any) => state.setContext);
+  const { context, setContext, refreshIntelligence, isRefreshing } = useCompanyStore();
   const user = useAuthStore((state: any) => state.user);
   const [isLoading, setIsLoading] = useState(!context && !!user);
 
@@ -23,9 +22,7 @@ export default function DashboardPage() {
           if (data.name) {
             setContext({
               name: data.name,
-              productLines: data.product_lines ? data.product_lines.split(",") : [],
-              competitors: data.competitors ? data.competitors.split(",") : [],
-              regionalFocus: data.regional_focus ? data.regional_focus.split(",") : [],
+              description: data.description || "",
             });
           }
         })
@@ -72,8 +69,8 @@ export default function DashboardPage() {
     );
   }
 
-  // Show onboarding if business information is not populated
-  const isProfileComplete = context && context.name && context.productLines.length > 0;
+  // Show onboarding if business information is not populated or is placeholder
+  const isProfileComplete = context && context.name && context.name !== "Pending Setup" && context.description;
 
   if (!isProfileComplete) {
     return (
@@ -108,6 +105,19 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => user?.business_id && refreshIntelligence(user.business_id)}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-all disabled:opacity-50"
+          >
+            {isRefreshing ? (
+              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Zap className="w-3 h-3" />
+            )}
+            {isRefreshing ? "Analyzing..." : "Refresh Intelligence"}
+          </button>
+
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
             <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Agents Active</span>

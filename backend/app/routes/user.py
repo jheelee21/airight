@@ -18,20 +18,17 @@ def register(reg: UserRegister, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # 2. Create Business
-    new_business = Business(
-        name=reg.business_name,
-        description=f"Business profile for {reg.business_name}"
-    )
-    db.add(new_business)
-    db.flush() # Get the business ID
+    # 2. Check if Business exists
+    business = db.query(Business).filter(Business.id == reg.business_id).first()
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found. Please run agent flow first.")
 
     # 3. Create User
     new_user = User(
         email=reg.admin_email,
         name=reg.admin_name,
-        password=reg.password, # In real app, hash this
-        business_id=new_business.id
+        password=reg.password,
+        business_id=reg.business_id
     )
     db.add(new_user)
     db.commit()
