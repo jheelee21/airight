@@ -13,6 +13,7 @@ cloudpickle==3.1.2
 cryptography==46.0.5
 distro==1.9.0
 docstring_parser==0.17.0
+email-validator==2.2.0
 fastapi==0.135.1
 google-adk==1.26.0
 google-api-core==2.30.0
