@@ -54,17 +54,43 @@ Use exactly one of these four types per action — they map to badge colors in t
                  (structural fixes: dual-sourcing, contract renegotiation, redundancy)
 </urgency_tiers>
 
+<similar_risk_skip_rule>
+Before generating action items for any risk in saved_risks, check risks_with_actions
+for an existing risk that is sufficiently similar AND already being addressed.
+
+A risk qualifies as "already in progress" if ALL of the following are true:
+  1. SAME CATEGORY: The existing risk shares the same category (e.g., both are
+     "Geopolitical", "Supplier", "Logistics", etc.).
+  2. SAME TARGET: The existing risk targets the same node — matching target_type AND
+     target_name (e.g., both affect the same supplier or the same route).
+  3. SIMILAR DESCRIPTION: The core threat described is materially the same
+     (e.g., both describe port congestion at the same port, or tariff exposure from
+     the same country). Minor wording differences do not make risks distinct.
+  4. ACTIONS IN PROGRESS: The existing risk in risks_with_actions has at least one
+     action item whose implementation_status is "In Progress".
+
+If all four conditions are met → SKIP the risk entirely. Do not generate any action
+items for it. Instead, log it in your reasoning as:
+  "Skipped risk_id <X>: similar to existing risk <Y> which already has in-progress actions."
+
+If only some conditions are met (e.g., same category but different target, or same
+target but different threat), do NOT skip — generate action items as normal but avoid
+duplicating the action types already present on the similar existing risk.
+</similar_risk_skip_rule>
+
 <instructions>
 1. For each risk in saved_risks:
    a. Read the integer "risk_id" — this is the value you will put in each action plan.
-   b. Check risks_with_actions for existing actions on the same risk. Avoid duplicating types.
-   c. Generate 2–5 complementary action items, mixing urgency tiers where sensible.
-   d. Write each description as an imperative sentence referencing real entity/route names.
-   e. Estimate cost in USD (integer or null). Use null + note for genuinely unknown costs.
-   f. Estimate expected_impact (0.0–1.0): how much this action reduces severity × probability.
+   b. Apply the <similar_risk_skip_rule> FIRST. If the risk qualifies as already in
+      progress, skip it and move to the next risk.
+   c. Check risks_with_actions for existing actions on the same risk. Avoid duplicating types.
+   d. Generate 2–5 complementary action items, mixing urgency tiers where sensible.
+   e. Write each description as an imperative sentence referencing real entity/route names.
+   f. Estimate cost in USD (integer or null). Use null + note for genuinely unknown costs.
+   g. Estimate expected_impact (0.0–1.0): how much this action reduces severity × probability.
 
-2. Every risk must have at least 2 action items. Use Acceptance-type monitoring actions
-   for vague or sparse risks rather than leaving them unaddressed.
+2. Every non-skipped risk must have at least 2 action items. Use Acceptance-type monitoring
+   actions for vague or sparse risks rather than leaving them unaddressed.
 
 3. After building the full array, call create_action_items ONCE.
 </instructions>
@@ -93,6 +119,7 @@ Build the following JSON array and pass it to create_action_items:
 Ordering:
 - action_items within a risk: IMMEDIATE → SHORT_TERM → LONG_TERM
 - top-level array: descending by risk_score (severity × probability)
+- Skipped risks are omitted entirely from the array.
 </output_format>
 
 <persistence_step>
@@ -100,7 +127,7 @@ After constructing the array:
   1. Call create_action_items(action_plans_json=<the JSON string>)
   2. Verify the returned "actions_saved" count matches your output.
   3. Return a plain-text summary to the orchestrator:
-       "Saved N action items across M risks. Highest-priority: <top risk description>."
+       "Saved N action items across M risks. Skipped K risks (already in progress). Highest-priority: <top risk description>."
      Report any errors from create_action_items if present.
 </persistence_step>
 """

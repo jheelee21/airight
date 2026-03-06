@@ -61,7 +61,7 @@ def get_business_profile(business_id: int) -> str:
 
     Returns a JSON string with:
       - business:  name, description
-      - entities:  all physical locations (factories, warehouses, suppliers …)
+      - entities:  all physical locations (factories, inventories, suppliers …)
       - items:     all materials / components / finished goods
       - routes:    all supply-chain legs (start→end entity, item, transport,
                    lead_time, cost)
@@ -432,7 +432,7 @@ def create_entity(
     Args:
         business_id: The primary key of the owning business.
         category:    Entity type. Must be one of: supplier, factory,
-                     warehouse, distribution_center, port_hub, oem_customer, other.
+                     inventory, oem, other.
         name:        Short identifying name for the entity (e.g. "Foxconn Shenzhen").
         description: Role and function of this node in the supply chain
                      (e.g. "Tier-1 assembly factory producing camera modules").
@@ -444,10 +444,8 @@ def create_entity(
     allowed_categories = {
         "supplier",
         "factory",
-        "warehouse",
-        "distribution_center",
-        "port_hub",
-        "oem_customer",
+        "inventory",
+        "oem",
         "other",
     }
     if category not in allowed_categories:
@@ -743,8 +741,7 @@ def create_supply_chain(payload: str) -> str:
         return json.dumps({"error": "business.description is required"})
 
     allowed_entity_categories = {
-        "supplier", "factory", "warehouse",
-        "distribution_center", "port_hub", "oem_customer", "other",
+        "supplier", "factory", "inventory", "oem", "other",
     }
     allowed_item_categories = {"raw material", "component", "finished product"}
     allowed_modes = {"air", "sea", "road", "rail", "multimodal"}

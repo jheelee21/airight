@@ -6,7 +6,7 @@ from app.database import Base
 class Route(Base):
     """
     Route is a connection between two nodes.
-    E.g. factory to warehouse, warehouse to distribution center.
+    E.g. factory to inventory, inventory to distribution center.
     Contains information about transportation, lead time, cost,
     starting / destination nodes, and the material that is transported.
     """

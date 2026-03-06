@@ -31,8 +31,7 @@ You have ONE write tool:
 
   entities (list of dicts) — one entry per physical node:
     {
-      "category":    "<one of: supplier | factory | warehouse | distribution_center |
-                       port_hub | oem_customer | other>",
+      "category":    "<one of: supplier | factory | inventory | oem | other>",
       "name":        "<short identifying name>",
       "description": "<role in the supply chain>",
       "location":    "<City, Country>"
@@ -112,10 +111,8 @@ TRANSPORT MODE CONFLICT RULE:
 ENTITY CATEGORY MAPPING:
   supplier            → external parts/material providers
   factory             → internal manufacturing/assembly plants
-  warehouse           → storage nodes
-  distribution_center → cross-docks or regional DCs
-  port_hub            → ports, airports, freight hubs
-  oem_customer        → customer/OEM receiving nodes
+  inventory           → storage nodes
+  oem       → customer/OEM receiving nodes
   other               → any valid node that doesn't fit above
 </parsing_instructions>
 

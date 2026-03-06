@@ -5,7 +5,7 @@ from app.database import Base
 class Entity(Base):
     """
     Entity is a physical location that is part of a business's supply chain.
-    E.g. factory, warehouse, distribution center, supplier, oem, etc.
+    E.g. factory, inventory, supplier, oem, etc.
 
     Not necessarily owned by the business. It can be a third party.
     """
