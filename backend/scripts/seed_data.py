@@ -2,21 +2,20 @@ import sys
 import os
 from sqlalchemy.orm import Session
 
-# Add the 'app' directory to sys.path so we can import from 'database' and 'models'
-# Use absolute paths to be safe
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app"))
-if BASE_DIR not in sys.path:
-    sys.path.append(BASE_DIR)
+# Add the root directory to sys.path so we can import 'app' as a package
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
 
-from database import SessionLocal, engine, Base
-from models.business import Business
-from models.user import User
-from models.entity import Entity
-from models.item import Item
-from models.route import Route
-from models.risk import Risk
-from models.action import Action
-from models.news import News
+from app.database import SessionLocal, engine, Base
+from app.models.business import Business
+from app.models.user import User
+from app.models.entity import Entity
+from app.models.item import Item
+from app.models.route import Route
+from app.models.risk import Risk
+from app.models.action import Action
+from app.models.news import News
 import datetime
 
 def seed_data():
