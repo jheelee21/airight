@@ -2,7 +2,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
 from . import prompt
-from app.tools.bigtable_tools import get_risks_with_actions
+from app.agent.app.tools.bigtable_tools import get_risks_with_actions
 
 MODEL = "gemini-3.1-flash-lite-preview"
 

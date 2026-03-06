@@ -2,7 +2,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
 from . import prompt
-from app.tools.bigtable_tools import create_supply_chain
+from app.agent.app.tools.bigtable_tools import create_supply_chain
 
 MODEL = "gemini-3.1-flash-lite-preview"
 
