@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, Check, Factory, Box, Users, MapPin } from "lucide-react";
 import { useCompanyStore } from "@/store/companyStore";
+import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -22,13 +23,23 @@ export default function OnboardingForm() {
     regionalFocus: [] as string[],
   });
   const [inputValue, setInputValue] = useState("");
-  const setContext = useCompanyStore((state) => state.setContext);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const user = useAuthStore((state: any) => state.user);
+  const updateContext = useCompanyStore((state) => state.updateContext);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      setContext(formData);
+      if (!user?.business_id) return;
+      setIsSubmitting(true);
+      try {
+        await updateContext(user.business_id, formData);
+      } catch (error) {
+        console.error("Onboarding failed:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -147,10 +158,11 @@ export default function OnboardingForm() {
           </button>
           <button
             onClick={handleNext}
-            className="flex items-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition-all"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50"
           >
-            {currentStep === STEPS.length - 1 ? "Finish" : "Next"}
-            <ArrowRight className="w-4 h-4" />
+            {isSubmitting ? "Saving..." : (currentStep === STEPS.length - 1 ? "Finish" : "Next")}
+            {!isSubmitting && <ArrowRight className="w-4 h-4" />}
           </button>
         </div>
       </div>

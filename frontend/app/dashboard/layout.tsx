@@ -35,7 +35,6 @@ export default function DashboardLayout({
 
         <nav className="flex-1 px-4 space-y-1">
           <NavItem icon={<LayoutDashboard className="w-4 h-4" />} label="Dashboard" active />
-          <NavItem icon={<Database className="w-4 h-4" />} label="Data Sources" />
           <NavItem icon={<Settings className="w-4 h-4" />} label="Settings" />
         </nav>
 
