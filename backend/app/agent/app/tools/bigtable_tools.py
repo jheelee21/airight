@@ -1404,6 +1404,10 @@ def create_risks(business_id: int, risks_json: str) -> str:
         for risk in risks:
             target_type = risk.get("target_type", "entity")
             target_name = risk.get("target_name", "")
+
+            title = risk.get("title") or ""
+            description = risk.get("description") or risk.get("title") or "No description provided."
+
             warning = None
 
             # Resolve name → integer id
@@ -1441,6 +1445,7 @@ def create_risks(business_id: int, risks_json: str) -> str:
                         category,
                         severity,
                         probability,
+                        title,
                         description,
                         target_type,
                         target_id
@@ -1450,12 +1455,13 @@ def create_risks(business_id: int, risks_json: str) -> str:
                         :category,
                         :severity,
                         :probability,
+                        :title,
                         :description,
                         :target_type,
                         :target_id
                     )
-                    RETURNING id, category, severity, probability, description,
-                              target_type, target_id
+                    RETURNING id, category, severity, probability, title, description,
+                            target_type, target_id
                     """
                 ),
                 {
@@ -1463,25 +1469,22 @@ def create_risks(business_id: int, risks_json: str) -> str:
                     "category":    risk.get("category", "Operational"),
                     "severity":    severity,
                     "probability": probability,
-                    "description": (
-                        risk.get("description")
-                        or risk.get("title")
-                        or "No description provided."
-                    ),
+                    "title":       title,
+                    "description": description,
                     "target_type": target_type,
                     "target_id":   target_id,
                 },
             ).fetchone()
 
             saved.append({
-                "risk_id":     row[0],   # ← real integer DB primary key
+                "risk_id":     row[0],
                 "category":    row[1],
                 "severity":    row[2],
                 "probability": float(row[3]),
-                "description": row[4],
-                "target_type": row[5],
-                "target_id":   row[6],
-                "title":       risk.get("title", ""),
+                "title":       row[4],
+                "description": row[5],
+                "target_type": row[6],
+                "target_id":   row[7],
                 "target_name": target_name,
                 "warning":     warning,
             })

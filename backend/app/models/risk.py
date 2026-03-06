@@ -19,8 +19,9 @@ class Risk(Base):
     target_id = Column(Integer, nullable=False)  # ID of the entity or route
 
     category = Column(String, nullable=False)
-    severity = Column(Float, nullable=False)  # 0.0 to 1.0
+    severity = Column(Float, nullable=False)   # 0.0 to 1.0
     probability = Column(Float, nullable=False)  # 0.0 to 1.0
+    title = Column(String, nullable=True)      # ← NEW: short headline from risk analyst
     description = Column(String, nullable=False)
 
     actions = relationship(
