@@ -16,6 +16,8 @@ from models.item import Item
 from models.route import Route
 from models.risk import Risk
 from models.action import Action
+from models.news import News
+import datetime
 
 def seed_data():
     # Ensure tables are created
@@ -26,6 +28,7 @@ def seed_data():
     try:
         # Clear existing data to avoid unique constraint violations
         print("Clearing existing data...")
+        db.query(News).delete()
         db.query(Action).delete()
         db.query(Risk).delete()
         db.query(Route).delete()
@@ -48,28 +51,27 @@ def seed_data():
         # 2. Create User
         user = User(
             business_id=business.id,
-            email="jeff-ryu@google.com",
-            password="hashed_password_placeholder",
+            email="admin@gmail.com",
+            password="0000",
             name="Jeff Ryu"
         )
         db.add(user)
-        print(f"Created User: {user.name}")
+        print(f"Created User: {user.name} (admin@gmail.com / 0000)")
 
         # 3. Create Entities
         entities = [
-            # Tier 3: Raw Materials & Components
-            Entity(business_id=business.id, category="tier-3", name="Boliden Mine (Sweden)", description="Copper and zinc extraction", location="Skellefteå, Sweden"),
-            Entity(business_id=business.id, category="tier-3", name="Albemarle Salar", description="Lithium extraction site", location="Atacama, Chile"),
+            # Tier 3 & 2 -> supplier
+            Entity(business_id=business.id, category="supplier", name="Boliden Mine (Sweden)", description="Copper and zinc extraction", location="Skellefteå, Sweden"),
+            Entity(business_id=business.id, category="supplier", name="Albemarle Salar", description="Lithium extraction site", location="Atacama, Chile"),
+            Entity(business_id=business.id, category="supplier", name="Sumitomo Metal Mining Co.", description="Refined cobalt and lithium production", location="Niihama, Japan"),
+            Entity(business_id=business.id, category="supplier", name="TSMC Hsinchu", description="Semiconductor fabrication plant", location="Hsinchu, Taiwan"),
+            Entity(business_id=business.id, category="supplier", name="Sunny Optical", description="Camera module assembly", location="Ningbo, China"),
             
-            # Tier 2: Component Processing
-            Entity(business_id=business.id, category="tier-2", name="Sumitomo Metal Mining Co.", description="Refined cobalt and lithium production", location="Niihama, Japan"),
-            Entity(business_id=business.id, category="tier-2", name="TSMC Hsinchu", description="Semiconductor fabrication plant", location="Hsinchu, Taiwan"),
+            # Internal -> factory / inventory
+            Entity(business_id=business.id, category="factory", name="LG Energy Solution (Cheongju)", description="Battery pack assembly", location="Cheongju, South Korea"),
+            Entity(business_id=business.id, category="inventory", name="Shenzhen Component Hub", description="Strategic inventory for components", location="Shenzhen, China"),
             
-            # Tier 1: Sub-Assembly
-            Entity(business_id=business.id, category="tier-1", name="LG Energy Solution", description="Battery pack assembly", location="Cheongju, South Korea"),
-            Entity(business_id=business.id, category="tier-1", name="Sunny Optical", description="Camera module assembly", location="Ningbo, China"),
-            
-            # OEM: Final Assembly
+            # OEM
             Entity(business_id=business.id, category="oem", name="Foxconn Shenzhen", description="Main assembly factory", location="Shenzhen, China"),
             Entity(business_id=business.id, category="oem", name="Google Taipei R&D", description="Engineering and design center", location="Taipei, Taiwan")
         ]
@@ -99,19 +101,23 @@ def seed_data():
 
         # 5. Create Routes
         routes = [
-            # Tier 3 -> Tier 2
+            # Supplier -> Factory/Inventory
             Route(business_id=business.id, name="Lithium Supply", description="Raw lithium transport from Chile to Japan", start_entity_id=id_map["Albemarle Salar"], end_entity_id=id_map["Sumitomo Metal Mining Co."], item_id=item_map["Refined Lithium"], transportation_mode="Sea", lead_time=30, cost=50000),
+            Route(business_id=business.id, name="Refined Lithium Flow", description="Lithium to Battery Factory", start_entity_id=id_map["Sumitomo Metal Mining Co."], end_entity_id=id_map["LG Energy Solution (Cheongju)"], item_id=item_map["Refined Lithium"], transportation_mode="Air", lead_time=3, cost=10000),
             
-            # Tier 2 -> Tier 1
-            Route(business_id=business.id, name="Battery Component Flow", description="Refined lithium shipped to battery assembly", start_entity_id=id_map["Sumitomo Metal Mining Co."], end_entity_id=id_map["LG Energy Solution"], item_id=item_map["Refined Lithium"], transportation_mode="Air", lead_time=3, cost=10000),
-            Route(business_id=business.id, name="Chip Flow", description="Processed silicon wafers shipped to assembly", start_entity_id=id_map["TSMC Hsinchu"], end_entity_id=id_map["Foxconn Shenzhen"], item_id=item_map["Tensor G4 Chip"], transportation_mode="Air", lead_time=2, cost=20000),
+            # Boliden -> TSMC (Copper for chips)
+            Route(business_id=business.id, name="Copper Supply", description="Copper for semiconductor lead frames", start_entity_id=id_map["Boliden Mine (Sweden)"], end_entity_id=id_map["TSMC Hsinchu"], item_id=item_map["Refined Lithium"], transportation_mode="Sea", lead_time=15, cost=20000),
+
+            # Components -> Inventory
+            Route(business_id=business.id, name="Chip Stockpiling", description="Processing wafers to inventory", start_entity_id=id_map["TSMC Hsinchu"], end_entity_id=id_map["Shenzhen Component Hub"], item_id=item_map["Tensor G4 Chip"], transportation_mode="Air", lead_time=2, cost=15000),
+            Route(business_id=business.id, name="Optics Buffer", description="Camera modules to inventory", start_entity_id=id_map["Sunny Optical"], end_entity_id=id_map["Shenzhen Component Hub"], item_id=item_map["Camera Module"], transportation_mode="Truck", lead_time=1, cost=5000),
             
-            # Tier 1 -> OEM
-            Route(business_id=business.id, name="Battery Supply", description="Assembled battery packs for final integration", start_entity_id=id_map["LG Energy Solution"], end_entity_id=id_map["Foxconn Shenzhen"], item_id=item_map["Battery Pack"], transportation_mode="Sea", lead_time=7, cost=15000),
-            Route(business_id=business.id, name="Optics Supply", description="Camera modules for final assembly", start_entity_id=id_map["Sunny Optical"], end_entity_id=id_map["Foxconn Shenzhen"], item_id=item_map["Camera Module"], transportation_mode="Truck", lead_time=1, cost=5000),
+            # Factory/Inventory -> OEM
+            Route(business_id=business.id, name="Battery Delivery", description="Assembled packs to OEM", start_entity_id=id_map["LG Energy Solution (Cheongju)"], end_entity_id=id_map["Foxconn Shenzhen"], item_id=item_map["Battery Pack"], transportation_mode="Sea", lead_time=7, cost=12000),
+            Route(business_id=business.id, name="Component Kitting", description="Sending all parts for assembly", start_entity_id=id_map["Shenzhen Component Hub"], end_entity_id=id_map["Foxconn Shenzhen"], item_id=item_map["Tensor G4 Chip"], transportation_mode="Truck", lead_time=1, cost=3000),
             
-            # OEM -> Distribution (Implicitly R&D for now)
-            Route(business_id=business.id, name="Quality Control", description="Final devices for R&D validation", start_entity_id=id_map["Foxconn Shenzhen"], end_entity_id=id_map["Google Taipei R&D"], item_id=item_map["Google Pixel 9 Pro"], transportation_mode="Air", lead_time=1, cost=2000)
+            # OEM -> R&D
+            Route(business_id=business.id, name="Quality Validation", description="Final devices for R&D validation", start_entity_id=id_map["Foxconn Shenzhen"], end_entity_id=id_map["Google Taipei R&D"], item_id=item_map["Google Pixel 9 Pro"], transportation_mode="Air", lead_time=1, cost=2000)
         ]
         db.add_all(routes)
         db.commit()
@@ -178,8 +184,36 @@ def seed_data():
         ]
         db.add_all(actions)
         db.commit()
-        for a in actions:
-            print(f"Created Action: {a.action_type}")
+
+        # 8. Create News
+        news_items = [
+            News(
+                business_id=business.id,
+                risk_id=risks[0].id, # TSMC risk
+                title="Taiwanese Export Control Update",
+                content="New restrictions on advanced semiconductor node exports expected in Q3.",
+                source="Global Trade News",
+                published_at=datetime.datetime.utcnow() - datetime.timedelta(hours=2)
+            ),
+            News(
+                business_id=business.id,
+                risk_id=risks[1].id, # Lithium risk
+                title="Atacama Water Rights Dispute",
+                content="Local communities challenge water usage of major lithium extractors.",
+                source="Environmental Insight",
+                published_at=datetime.datetime.utcnow() - datetime.timedelta(hours=5)
+            ),
+            News(
+                business_id=business.id,
+                title="Shenzen Logistics Recovery",
+                content="Port operations returning to normal after seasonal peak capacity reached.",
+                source="Logistics Weekly",
+                published_at=datetime.datetime.utcnow() - datetime.timedelta(hours=8)
+            )
+        ]
+        db.add_all(news_items)
+        db.commit()
+        print(f"Created {len(news_items)} news items.")
 
         print("\nSeed data population completed successfully!")
 

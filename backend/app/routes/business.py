@@ -66,3 +66,15 @@ def get_business_graph(business_id: int, db: Session = Depends(get_db)):
         "nodes": entities,
         "edges": routes
     }
+
+
+from models.news import News
+import schemas.news as news_schemas
+
+@router.get("/{business_id}/news", response_model=List[news_schemas.NewsSchema])
+def get_business_news(business_id: int, db: Session = Depends(get_db)):
+    """
+    Returns all news associated with a specific business.
+    """
+    news = db.query(News).filter(News.business_id == business_id).order_by(News.published_at.desc()).all()
+    return news
