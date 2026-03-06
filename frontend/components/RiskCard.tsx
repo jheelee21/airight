@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { useCompanyStore } from "@/store/companyStore";
 
 interface RiskCardProps {
   risk: RiskIntelligence;
@@ -90,6 +91,7 @@ export default function RiskCard({ risk }: { risk: any }) {
 function MitigationItem({ step }: { step: MitigationStep }) {
   const [status, setStatus] = useState(step.status);
   const [isUpdating, setIsUpdating] = useState(false);
+  const triggerRisksRefresh = useCompanyStore((state: any) => state.triggerRisksRefresh);
 
   const getStatusConfig = (currentStatus: string) => {
     const s = currentStatus.toLowerCase();
@@ -138,6 +140,9 @@ function MitigationItem({ step }: { step: MitigationStep }) {
       if (!response.ok) {
         throw new Error("Failed to update status");
       }
+      
+      // Global refresh trigger
+      triggerRisksRefresh();
     } catch (error) {
       console.error("Status update failed:", error);
       // Revert on error
