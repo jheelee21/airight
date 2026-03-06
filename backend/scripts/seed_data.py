@@ -24,6 +24,17 @@ def seed_data():
     
     db: Session = SessionLocal()
     try:
+        # Clear existing data to avoid unique constraint violations
+        print("Clearing existing data...")
+        db.query(Action).delete()
+        db.query(Risk).delete()
+        db.query(Route).delete()
+        db.query(Item).delete()
+        db.query(Entity).delete()
+        db.query(User).delete()
+        db.query(Business).delete()
+        db.commit()
+
         # 1. Create Business
         business = Business(
             name="Google Consumer Electronics",
@@ -46,24 +57,35 @@ def seed_data():
 
         # 3. Create Entities
         entities = [
-            Entity(business_id=business.id, name="TSMC Hsinchu", description="Semiconductor manufacturing plant", location="Hsinchu, Taiwan"),
-            Entity(business_id=business.id, name="Foxconn Shenzhen", description="Main assembly factory", location="Shenzhen, China"),
-            Entity(business_id=business.id, name="Google Taipei R&D", description="Engineering and design center", location="Taipei, Taiwan"),
-            Entity(business_id=business.id, name="Google Mountain View Warehouse", description="North American distribution hub", location="Mountain View, CA, USA"),
-            Entity(business_id=business.id, name="Google Store NYC", description="Flagship retail location", location="New York, NY, USA")
+            # Tier 3: Raw Materials & Components
+            Entity(business_id=business.id, category="tier-3", name="Boliden Mine (Sweden)", description="Copper and zinc extraction", location="Skellefteå, Sweden"),
+            Entity(business_id=business.id, category="tier-3", name="Albemarle Salar", description="Lithium extraction site", location="Atacama, Chile"),
+            
+            # Tier 2: Component Processing
+            Entity(business_id=business.id, category="tier-2", name="Sumitomo Metal Mining Co.", description="Refined cobalt and lithium production", location="Niihama, Japan"),
+            Entity(business_id=business.id, category="tier-2", name="TSMC Hsinchu", description="Semiconductor fabrication plant", location="Hsinchu, Taiwan"),
+            
+            # Tier 1: Sub-Assembly
+            Entity(business_id=business.id, category="tier-1", name="LG Energy Solution", description="Battery pack assembly", location="Cheongju, South Korea"),
+            Entity(business_id=business.id, category="tier-1", name="Sunny Optical", description="Camera module assembly", location="Ningbo, China"),
+            
+            # OEM: Final Assembly
+            Entity(business_id=business.id, category="oem", name="Foxconn Shenzhen", description="Main assembly factory", location="Shenzhen, China"),
+            Entity(business_id=business.id, category="oem", name="Google Taipei R&D", description="Engineering and design center", location="Taipei, Taiwan")
         ]
         db.add_all(entities)
         db.commit()
         for e in entities:
             db.refresh(e)
-            print(f"Created Entity: {e.name}")
+            print(f"Created Entity: {e.name} ({e.category})")
 
         # 4. Create Items
         items = [
+            Item(business_id=business.id, name="Refined Lithium", category="raw material", description="High-purity Lithium Carbonate"),
             Item(business_id=business.id, name="Tensor G4 Chip", category="component", description="Next-gen AI processor"),
-            Item(business_id=business.id, name="OLED Display Panel", category="component", description="High-refresh rate AMOLED panel"),
-            Item(business_id=business.id, name="Google Pixel 9 Pro", category="finished product", description="Flagship smartphone"),
-            Item(business_id=business.id, name="Recycled Aluminum", category="raw material", description="Eco-friendly chassis material")
+            Item(business_id=business.id, name="Battery Pack", category="sub-assembly", description="5000mAh Li-ion battery"),
+            Item(business_id=business.id, name="Camera Module", category="sub-assembly", description="Triple-lens setup"),
+            Item(business_id=business.id, name="Google Pixel 9 Pro", category="finished product", description="Flagship smartphone")
         ]
         db.add_all(items)
         db.commit()
@@ -77,45 +99,22 @@ def seed_data():
 
         # 5. Create Routes
         routes = [
-            Route(
-                business_id=business.id,
-                name="Chip Logistics",
-                description="Shipping Tensor chips for assembly",
-                start_entity_id=id_map["TSMC Hsinchu"],
-                end_entity_id=id_map["Foxconn Shenzhen"],
-                item_id=item_map["Tensor G4 Chip"],
-                transportation_mode="Air",
-                lead_time=2,
-                cost=50000
-            ),
-            Route(
-                business_id=business.id,
-                name="Final Product Export",
-                description="Shipping assembled Pixels to US hub",
-                start_entity_id=id_map["Foxconn Shenzhen"],
-                end_entity_id=id_map["Google Mountain View Warehouse"],
-                item_id=item_map["Google Pixel 9 Pro"],
-                transportation_mode="Sea",
-                lead_time=21,
-                cost=200000
-            ),
-            Route(
-                business_id=business.id,
-                name="Retail Distribution",
-                description="Shipping to NYC store",
-                start_entity_id=id_map["Google Mountain View Warehouse"],
-                end_entity_id=id_map["Google Store NYC"],
-                item_id=item_map["Google Pixel 9 Pro"],
-                transportation_mode="Truck",
-                lead_time=5,
-                cost=15000
-            )
+            # Tier 3 -> Tier 2
+            Route(business_id=business.id, name="Lithium Supply", description="Raw lithium transport from Chile to Japan", start_entity_id=id_map["Albemarle Salar"], end_entity_id=id_map["Sumitomo Metal Mining Co."], item_id=item_map["Refined Lithium"], transportation_mode="Sea", lead_time=30, cost=50000),
+            
+            # Tier 2 -> Tier 1
+            Route(business_id=business.id, name="Battery Component Flow", description="Refined lithium shipped to battery assembly", start_entity_id=id_map["Sumitomo Metal Mining Co."], end_entity_id=id_map["LG Energy Solution"], item_id=item_map["Refined Lithium"], transportation_mode="Air", lead_time=3, cost=10000),
+            Route(business_id=business.id, name="Chip Flow", description="Processed silicon wafers shipped to assembly", start_entity_id=id_map["TSMC Hsinchu"], end_entity_id=id_map["Foxconn Shenzhen"], item_id=item_map["Tensor G4 Chip"], transportation_mode="Air", lead_time=2, cost=20000),
+            
+            # Tier 1 -> OEM
+            Route(business_id=business.id, name="Battery Supply", description="Assembled battery packs for final integration", start_entity_id=id_map["LG Energy Solution"], end_entity_id=id_map["Foxconn Shenzhen"], item_id=item_map["Battery Pack"], transportation_mode="Sea", lead_time=7, cost=15000),
+            Route(business_id=business.id, name="Optics Supply", description="Camera modules for final assembly", start_entity_id=id_map["Sunny Optical"], end_entity_id=id_map["Foxconn Shenzhen"], item_id=item_map["Camera Module"], transportation_mode="Truck", lead_time=1, cost=5000),
+            
+            # OEM -> Distribution (Implicitly R&D for now)
+            Route(business_id=business.id, name="Quality Control", description="Final devices for R&D validation", start_entity_id=id_map["Foxconn Shenzhen"], end_entity_id=id_map["Google Taipei R&D"], item_id=item_map["Google Pixel 9 Pro"], transportation_mode="Air", lead_time=1, cost=2000)
         ]
         db.add_all(routes)
         db.commit()
-        for r in routes:
-            db.refresh(r)
-            print(f"Created Route: {r.name}")
 
         # 6. Create Risks
         risks = [
@@ -124,42 +123,56 @@ def seed_data():
                 target_type="entity",
                 target_id=id_map["TSMC Hsinchu"],
                 category="geopolitical",
-                severity=0.8,
-                probability=0.2,
-                description="Regional tensions affecting semiconductor exports."
+                severity=0.9,
+                probability=0.4,
+                description="Export restrictions on advanced semiconductor nodes."
+            ),
+            Risk(
+                business_id=business.id,
+                target_type="entity",
+                target_id=id_map["Albemarle Salar"],
+                category="environmental",
+                severity=0.7,
+                probability=0.3,
+                description="Water usage regulations impacting lithium extraction rates."
             ),
             Risk(
                 business_id=business.id,
                 target_type="route",
-                target_id=routes[1].id, # Final Product Export
+                target_id=routes[0].id, # Lithium Supply
                 category="physical",
-                severity=0.6,
-                probability=0.3,
-                description="Port congestion causing lead time delays."
+                severity=0.5,
+                probability=0.6,
+                description="Canal blockages delaying bulk raw material shipments."
             )
         ]
         db.add_all(risks)
         db.commit()
-        for risk in risks:
-            db.refresh(risk)
-            print(f"Created Risk: {risk.category} (ID: {risk.id})")
 
         # 7. Create Actions
         actions = [
             Action(
                 risk_id=risks[0].id,
                 action_type="Mitigation",
-                description="Maintain 3-month buffer inventory of Tensor chips in a local warehouse.",
-                estimated_cost=2000000.0,
-                expected_impact=0.7,
+                description="Strategic stockpile of 12-month supply of Tensor chipsets.",
+                estimated_cost=5000000.0,
+                expected_impact=0.8,
                 implementation_status="In Progress"
             ),
             Action(
                 risk_id=risks[1].id,
+                action_type="Diversification",
+                description="Qualify secondary lithium suppliers in Australia.",
+                estimated_cost=1000000.0,
+                expected_impact=0.6,
+                implementation_status="Planned"
+            ),
+            Action(
+                risk_id=risks[2].id,
                 action_type="Avoidance",
-                description="Redirect logic to air freight for urgent shipments during peak congestion.",
-                estimated_cost=500000.0,
-                expected_impact=0.5,
+                description="Establish alternative sea routes via Cape of Good Hope.",
+                estimated_cost=200000.0,
+                expected_impact=0.4,
                 implementation_status="Planned"
             )
         ]

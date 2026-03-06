@@ -9,6 +9,41 @@ import schemas.business as business_schemas
 
 router = APIRouter(prefix="/api/business", tags=["Business"])
 
+@router.get("/{business_id}", response_model=business_schemas.BusinessResponse)
+def get_business(business_id: int, db: Session = Depends(get_db)):
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found")
+    return business
+
+
+@router.patch("/{business_id}", response_model=business_schemas.BusinessResponse)
+def update_business(business_id: int, business_update: business_schemas.BusinessUpdate, db: Session = Depends(get_db)):
+    db_business = db.query(Business).filter(Business.id == business_id).first()
+    if not db_business:
+        raise HTTPException(status_code=404, detail="Business not found")
+    
+    update_data = business_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_business, key, value)
+    
+    db.commit()
+    db.refresh(db_business)
+    return db_business
+
+
+from models.risk import Risk
+import schemas.risk as risk_schemas
+
+@router.get("/{business_id}/risks", response_model=List[risk_schemas.RiskSchema])
+def get_business_risks(business_id: int, db: Session = Depends(get_db)):
+    """
+    Returns all risks associated with a specific business.
+    """
+    risks = db.query(Risk).filter(Risk.business_id == business_id).all()
+    return risks
+
+
 @router.get("/{business_id}/graph", response_model=business_schemas.GraphResponse)
 def get_business_graph(business_id: int, db: Session = Depends(get_db)):
     """

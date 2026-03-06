@@ -12,5 +12,7 @@ class Business(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-    # TODO: add more ... domain related columns
+    description = Column(String, nullable=True)
+    product_lines = Column(String, nullable=True) # Comma separated for now
+    competitors = Column(String, nullable=True)
+    regional_focus = Column(String, nullable=True)
