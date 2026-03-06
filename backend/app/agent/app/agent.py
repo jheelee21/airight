@@ -19,7 +19,7 @@ from app.agent.app.tools.bigtable_tools import (
 from . import prompt
 
 logger = logging.getLogger(__name__)
-MODEL = "3.1-flash-lite-preview"
+MODEL = "gemini-2.5-flash-lite"
 
 
 class ThrottledAgentTool(AgentTool):
