@@ -65,7 +65,10 @@ const EntityNode = ({ data }: { data: any }) => {
   };
 
   const nodeStyle = nodeStyles[category] || nodeStyles.supplier;
-  const riskStatus = data.riskStatus || (data.hasRisk ? 'active' : null);
+  const riskIds = data.riskIds || [];
+  const riskStatus = data.riskStatus; // Most critical status
+  const statusCounts = data.statusCounts || {};
+  const scale = data.scale || 1.0;
   
   const riskStyles: Record<string, { ring: string, badge: string, icon: string }> = {
     active: { 
@@ -88,19 +91,21 @@ const EntityNode = ({ data }: { data: any }) => {
   const riskStyle = riskStatus ? riskStyles[riskStatus] : null;
 
   return (
-    <div className={cn(
-      "flex flex-col items-center justify-center !p-3 !rounded-2xl transition-all duration-500 !min-h-[120px] relative w-full h-full !bg-white dark:!bg-zinc-950",
-      nodeStyle.border,
-      isInternal ? "!shadow-xl !ring-2 !ring-emerald-500/10 !border-8" : "!border-4",
-      riskStyle ? `!ring-8 !ring-offset-4 ${riskStyle.ring}` : ""
-    )}
+    <div 
+      className={cn(
+        "flex flex-col items-center justify-center !p-3 !rounded-2xl transition-all duration-500 !min-h-[120px] relative w-full h-full !bg-white dark:!bg-zinc-950",
+        nodeStyle.border,
+        isInternal ? "!shadow-xl !ring-2 !ring-emerald-500/10 !border-8" : "!border-4",
+        riskStyle ? `!ring-8 !ring-offset-4 ${riskStyle.ring}` : ""
+      )}
+      style={{ transform: `scale(${scale})` }}
     >
-      {/* Risk Indicator Icon */}
-      {riskStatus && (
+      {/* Risk Indicator Icon & Multi-Risk Badge */}
+      {riskIds.length > 0 && (
         <div 
           className={cn(
-            "absolute -top-2 -right-2 rounded-full p-1.5 shadow-xl z-20 cursor-pointer hover:scale-110 transition-transform nopan nodrag",
-            riskStyle?.badge,
+            "absolute -top-2 -right-2 rounded-full p-1.5 shadow-xl z-20 cursor-pointer hover:scale-110 transition-transform nopan nodrag flex items-center gap-1",
+            riskStyle?.badge || "bg-zinc-500",
             riskStatus !== 'complete' && "animate-bounce"
           )}
           onPointerDown={(e) => {
@@ -108,24 +113,44 @@ const EntityNode = ({ data }: { data: any }) => {
           }}
           onClick={(e) => {
             e.stopPropagation();
-            const riskId = data.riskId;
-            console.log('Warning clicked, riskId:', riskId);
-            if (riskId) {
-              const element = document.getElementById(`risk-${riskId}`);
-              console.log('Found element:', element);
+            console.log('Warning clicked, riskIds:', riskIds);
+            riskIds.forEach((id: string, index: number) => {
+              const element = document.getElementById(`risk-${id}`);
               if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (index === 0) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
                 setTimeout(() => {
                   element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
-                }, 3000);
+                }, 4000);
               }
-            }
+            });
           }}
         >
           <AlertTriangle className="w-4 h-4 text-white pointer-events-none" />
+          {riskIds.length > 1 && (
+            <span className="text-[10px] font-black text-white pr-1 leading-none">{riskIds.length}</span>
+          )}
         </div>
       )}
+
+      {/* Status Breakdown Dots */}
+      {riskIds.length > 1 && (
+        <div className="absolute -bottom-1 flex gap-1 z-10">
+          {Object.entries(statusCounts).map(([status, count]) => {
+            const colors: Record<string, string> = {
+              'active': 'bg-red-500',
+              'doing': 'bg-blue-500',
+              'complete': 'bg-emerald-500'
+            };
+            return Array.from({ length: count as number }).map((_, i) => (
+              <div key={`${status}-${i}`} className={cn("w-2 h-2 rounded-full border border-white dark:border-zinc-900 shadow-sm", colors[status])} />
+            ));
+          })}
+        </div>
+      )}
+
       <Handle 
         type="target" 
         position={Position.Top} 
@@ -323,8 +348,8 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
             );
 
             // Mapping for focus effect and progress status
-            const entityToRiskData: Record<string, any> = {};
-            const routeToRiskData: Record<string, any> = {};
+            const entityToRiskData: Record<string, { id: string, status: string }[]> = {};
+            const routeToRiskData: Record<string, { id: string, status: string }[]> = {};
             
             const getRiskStatus = (risk: any) => {
               if (!risk) return null;
@@ -332,44 +357,47 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
               if (actions.length === 0) return 'active';
               
               if (actions.every((a: any) => a.implementation_status === 'Complete')) return 'complete';
-              if (actions.some((a: any) => a.implementation_status === 'Doing' || a.implementation_status === 'Complete')) return 'doing';
+              if (actions.some((a: any) => a.implementation_status === 'In Progress' || a.implementation_status === 'Complete')) return 'doing';
               
               return 'active';
             };
 
             riskData.forEach((r: any) => {
               const status = getRiskStatus(r);
+              if (!status) return; // Skip if status is null
+              
               if (r.target_type === 'entity') {
-                entityToRiskData[r.target_id.toString()] = { id: r.id.toString(), status };
+                const id = r.target_id.toString();
+                if (!entityToRiskData[id]) entityToRiskData[id] = [];
+                entityToRiskData[id].push({ id: r.id.toString(), status });
               } else if (r.target_type === 'route') {
-                routeToRiskData[r.target_id.toString()] = { id: r.id.toString(), status };
+                const id = r.target_id.toString();
+                if (!routeToRiskData[id]) routeToRiskData[id] = [];
+                routeToRiskData[id].push({ id: r.id.toString(), status });
               }
             });
 
-            // Collect all statuses for a node to pick the 'most active'
-            const nodeToRiskStatus: Record<string, string> = {};
-            const nodeToRiskId: Record<string, string> = {};
+            // Collect all statuses for a node
+            const nodeToRisks: Record<string, { id: string, status: string }[]> = {};
 
-            const updateNodeStatus = (nodeId: string, status: string, riskId: string) => {
-              const currentStatus = nodeToRiskStatus[nodeId];
-              const priority: Record<string, number> = { 'active': 3, 'doing': 2, 'complete': 1 };
-              
-              if (!currentStatus || (priority[status] || 0) > (priority[currentStatus] || 0)) {
-                nodeToRiskStatus[nodeId] = status;
-                nodeToRiskId[nodeId] = riskId;
+            const addNodeRisk = (nodeId: string, riskObj: { id: string, status: string }) => {
+              if (!nodeToRisks[nodeId]) nodeToRisks[nodeId] = [];
+              // Avoid duplicates
+              if (!nodeToRisks[nodeId].some(r => r.id === riskObj.id)) {
+                nodeToRisks[nodeId].push(riskObj);
               }
             };
 
             Object.keys(entityToRiskData).forEach(id => {
-              updateNodeStatus(id, entityToRiskData[id].status, entityToRiskData[id].id);
+              entityToRiskData[id].forEach(risk => addNodeRisk(id, risk));
             });
 
             reachableEdges.forEach((e: any) => {
-              const routeRisk = routeToRiskData[e.id.toString()];
-              if (routeRisk) {
-                updateNodeStatus(e.start_entity_id.toString(), routeRisk.status, routeRisk.id);
-                updateNodeStatus(e.end_entity_id.toString(), routeRisk.status, routeRisk.id);
-              }
+              const routeRisks = routeToRiskData[e.id.toString()] || [];
+              routeRisks.forEach(risk => {
+                addNodeRisk(e.start_entity_id.toString(), risk);
+                addNodeRisk(e.end_entity_id.toString(), risk);
+              });
             });
 
             const apiNodes = graphData.nodes
@@ -383,7 +411,25 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                 yCounts[y]++;
 
                 const isInternal = category === 'factory' || category === 'inventory';
-                const riskStatus = nodeToRiskStatus[n.id.toString()];
+                const risks = nodeToRisks[n.id.toString()] || [];
+                
+                // Determine most critical status
+                const priority: Record<string, number> = { 'active': 3, 'doing': 2, 'complete': 1 };
+                let mostCriticalStatus = null;
+                if (risks.length > 0) {
+                  mostCriticalStatus = risks.reduce((prev, curr) => 
+                    priority[curr.status] > priority[prev.status] ? curr : prev
+                  ).status;
+                }
+
+                // Breakdown counts
+                const statusCounts: Record<string, number> = {};
+                risks.forEach(r => {
+                  statusCounts[r.status] = (statusCounts[r.status] || 0) + 1;
+                });
+
+                // Scale based on risk density (1.0 to 1.3)
+                const scale = 1.0 + Math.min(risks.length * 0.1, 0.3);
 
                 return {
                   id: n.id.toString(),
@@ -392,19 +438,30 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                   data: { 
                     label: n.name, 
                     category: category,
-                    riskStatus: riskStatus,
-                    riskId: nodeToRiskId[n.id.toString()]
+                    riskStatus: mostCriticalStatus,
+                    riskIds: risks.map(r => r.id),
+                    statusCounts,
+                    scale
                   }
                 };
               });
 
             const apiEdges = reachableEdges.map((e: any) => {
-              const routeRisk = routeToRiskData[e.id.toString()];
-              const riskStatus = routeRisk?.status;
+              const routeRisks = routeToRiskData[e.id.toString()] || [];
+              
+              // Most critical status for color
+              const priority: Record<string, number> = { 'active': 3, 'doing': 2, 'complete': 1 };
+              let riskStatus = null;
+              if (routeRisks.length > 0) {
+                riskStatus = routeRisks.reduce((prev, curr) => 
+                  priority[curr.status] > priority[prev.status] ? curr : prev
+                ).status;
+              }
               
               const statusColors: Record<string, string> = {
                 'active': '#ef4444',
                 'doing': '#3b82f6',
+                'in progress': '#3b82f6',
                 'complete': '#10b981'
               };
               
@@ -419,7 +476,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                 animated: true,
                 style: { 
                   stroke: color, 
-                  strokeWidth: hasRisk ? 4 : 2,
+                  strokeWidth: hasRisk ? 4 + (routeRisks.length * 2) : 2,
                   opacity: 1 
                 },
                 markerEnd: { type: MarkerType.ArrowClosed, color: color },
@@ -433,7 +490,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                 labelBgPadding: [6, 4],
                 labelBgBorderRadius: 4,
                 data: {
-                  riskId: routeRisk?.id
+                  riskIds: routeRisks.map(r => r.id)
                 }
               };
             });
@@ -460,31 +517,34 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={(_, node) => {
-          const riskId = node.data.riskId;
-          if (riskId) {
-            const element = document.getElementById(`risk-${riskId}`);
+          const riskIds = node.data.riskIds || [];
+          riskIds.forEach((id: string, index: number) => {
+            const element = document.getElementById(`risk-${id}`);
             if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              
+              if (index === 0) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
               element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
               setTimeout(() => {
                 element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
-              }, 3000);
+              }, 4000);
             }
-          }
+          });
         }}
         onEdgeClick={(_, edge) => {
-          const riskId = edge.data?.riskId;
-          if (riskId) {
-            const element = document.getElementById(`risk-${riskId}`);
+          const riskIds = edge.data?.riskIds || [];
+          riskIds.forEach((id: string, index: number) => {
+            const element = document.getElementById(`risk-${id}`);
             if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              if (index === 0) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
               element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
               setTimeout(() => {
                 element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
-              }, 3000);
+              }, 4000);
             }
-          }
+          });
         }}
         fitView
       >

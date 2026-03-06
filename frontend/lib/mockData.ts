@@ -1,7 +1,7 @@
 export interface MitigationStep {
   id: string;
   action: string;
-  status: "Planned" | "Doing" | "Complete";
+  status: "Planned" | "In Progress" | "Complete";
 }
 
 export interface RiskIntelligence {
@@ -29,7 +29,7 @@ export const MOCK_RISKS: RiskIntelligence[] = [
     sourceName: "Global Trade Daily",
     detectedAt: "2h ago",
     mitigationRoadmap: [
-      { id: "m1", action: "Identify alternative suppliers in South America", status: "Doing" },
+      { id: "m1", action: "Identify alternative suppliers in South America", status: "In Progress" },
       { id: "m2", action: "Negotiate advance purchase agreements", status: "Planned" },
       { id: "m3", action: "Review regional compliance documentation", status: "Planned" },
     ],

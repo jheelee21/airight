@@ -105,7 +105,7 @@ function MitigationItem({ step }: { step: MitigationStep }) {
     if (s === "doing" || s === "in progress") {
       return { 
         text: "text-blue-600 dark:text-blue-400", 
-        label: "Doing",
+        label: "In Progress",
         bg: "bg-blue-500/10 border-blue-500/20"
       };
     }
@@ -119,10 +119,10 @@ function MitigationItem({ step }: { step: MitigationStep }) {
   const handleToggle = async () => {
     if (isUpdating) return;
     
-    // Cycle: Planned -> Doing -> Complete -> Planned
+    // Cycle: Planned -> In Progress -> Complete -> Planned
     const s = status.toLowerCase();
-    let nextStatus = "Planned";
-    if (s === "planned") nextStatus = "Doing";
+    let nextStatus: string = "Planned";
+    if (s === "planned") nextStatus = "In Progress";
     else if (s === "doing" || s === "in progress") nextStatus = "Complete";
     else nextStatus = "Planned";
 
@@ -168,7 +168,7 @@ function MitigationItem({ step }: { step: MitigationStep }) {
         <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex-1 leading-snug group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">
           {step.action}
         </span>
-        <div className={cn("text-[10px] font-bold uppercase w-16 text-center py-0.5 rounded-sm tracking-tighter transition-all transform group-active:scale-95 border", config.bg, config.text)}>
+        <div className={cn("text-[10px] font-bold uppercase w-20 text-center py-0.5 rounded-sm transition-all transform group-active:scale-95 border", config.bg, config.text)}>
           {config.label}
         </div>
       </div>
