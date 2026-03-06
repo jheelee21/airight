@@ -2,14 +2,14 @@ import { create } from "zustand";
 
 interface AuthState {
   isAuthenticated: boolean;
-  user: { email: string } | null;
-  login: (email: string) => void;
+  user: { email: string; business_id: number; id: number } | null;
+  login: (userData: { email: string; business_id: number; id: number }) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   user: null,
-  login: (email) => set({ isAuthenticated: true, user: { email: email || "demo@airight.ai" } }),
+  login: (userData) => set({ isAuthenticated: true, user: userData }),
   logout: () => set({ isAuthenticated: false, user: null }),
 }));

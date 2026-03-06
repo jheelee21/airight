@@ -18,11 +18,26 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    login(email);
-    router.push("/dashboard");
+    try {
+      const response = await fetch("http://localhost:8000/api/user/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Invalid credentials");
+      }
+
+      const userData = await response.json();
+      login(userData);
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Login failed. Please check your credentials.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

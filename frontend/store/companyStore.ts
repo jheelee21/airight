@@ -10,7 +10,10 @@ interface CompanyContext {
 
 interface CompanyState {
   context: CompanyContext | null;
+  businessId: number | null;
+  setBusinessId: (id: number) => void;
   setContext: (context: CompanyContext) => void;
+  updateContext: (businessId: number, context: CompanyContext) => Promise<void>;
   clearContext: () => void;
 }
 
@@ -18,8 +21,25 @@ export const useCompanyStore = create<CompanyState>()(
   persist(
     (set) => ({
       context: null,
+      businessId: null,
+      setBusinessId: (id) => set({ businessId: id }),
       setContext: (context) => set({ context }),
-      clearContext: () => set({ context: null }),
+      updateContext: async (businessId, context) => {
+        const response = await fetch(`http://localhost:8000/api/business/${businessId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: context.name,
+            product_lines: context.productLines.join(","),
+            competitors: context.competitors.join(","),
+            regional_focus: context.regionalFocus.join(","),
+          }),
+        });
+        if (response.ok) {
+          set({ context, businessId });
+        }
+      },
+      clearContext: () => set({ context: null, businessId: null }),
     }),
     {
       name: "company-storage",

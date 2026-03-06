@@ -1,15 +1,69 @@
 "use client";
 
 import { useCompanyStore } from "@/store/companyStore";
+import { useAuthStore } from "@/store/authStore";
 import OnboardingForm from "@/components/OnboardingForm";
 import RiskCard from "@/components/RiskCard";
+import DependencyGraph from "@/components/DependencyGraph";
 import { MOCK_RISKS } from "@/lib/mockData";
 import { AlertCircle, TrendingUp, ShieldAlert, Globe, Filter, Search } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  const context = useCompanyStore((state) => state.context);
+  const context = useCompanyStore((state: any) => state.context);
+  const setContext = useCompanyStore((state: any) => state.setContext);
+  const user = useAuthStore((state: any) => state.user);
+  const [isLoading, setIsLoading] = useState(!context && !!user);
 
-  if (!context) {
+  useEffect(() => {
+    if (user?.business_id && !context) {
+      fetch(`http://localhost:8000/api/business/${user.business_id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.name) {
+            setContext({
+              name: data.name,
+              productLines: data.product_lines ? data.product_lines.split(",") : [],
+              competitors: data.competitors ? data.competitors.split(",") : [],
+              regionalFocus: data.regional_focus ? data.regional_focus.split(",") : [],
+            });
+          }
+        })
+        .finally(() => setIsLoading(false));
+    }
+  }, [user?.business_id, context, setContext]);
+
+  const [risks, setRisks] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user?.business_id) {
+      fetch(`http://localhost:8000/api/business/${user.business_id}/risks`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            // Sort by priority (severity * probability) descending
+            const sortedRisks = [...data].sort((a, b) => 
+              (b.severity * b.probability) - (a.severity * a.probability)
+            );
+            setRisks(sortedRisks);
+          }
+        })
+        .catch(err => console.error("Failed to fetch risks:", err));
+    }
+  }, [user?.business_id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-8 h-8 border-4 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Show onboarding if business information is not populated
+  const isProfileComplete = context && context.name && context.productLines.length > 0;
+
+  if (!isProfileComplete) {
     return (
       <div className="p-8">
         <div className="max-w-xl mx-auto text-center mb-12">
@@ -25,8 +79,8 @@ export default function DashboardPage() {
     );
   }
 
-  const criticalCount = MOCK_RISKS.filter(r => (r.severity * r.likelihood) >= 20).length;
-  const mediumCount = MOCK_RISKS.filter(r => (r.severity * r.likelihood) >= 10 && (r.severity * r.likelihood) < 20).length;
+  const criticalCount = risks.filter((r: any) => (r.severity * r.probability) >= 0.25).length;
+  const mediumCount = risks.filter((r: any) => (r.severity * r.probability) >= 0.1 && (r.severity * r.probability) < 0.25).length;
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -46,13 +100,12 @@ export default function DashboardPage() {
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
             <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Agents Active</span>
           </div>
-          <button className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50 transition-all">
-            <Filter className="w-4 h-4" />
-          </button>
-          <button className="p-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50 transition-all">
-            <Search className="w-4 h-4" />
-          </button>
         </div>
+      </div>
+
+      {/* Dependency Graph Section */}
+      <div className="w-full">
+        <DependencyGraph businessId={user?.business_id} />
       </div>
 
       {/* Stats Overview */}
@@ -65,15 +118,9 @@ export default function DashboardPage() {
 
       {/* Risk Feed Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {MOCK_RISKS.map((risk) => (
+        {risks.map((risk: any) => (
           <RiskCard key={risk.id} risk={risk} />
         ))}
-        
-        {/* Placeholder Loading State or Empty State Indicator */}
-        <div className="lg:col-span-1 rounded-2xl border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex flex-col items-center justify-center p-8 opacity-40">
-          <div className="w-10 h-10 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-zinc-100 rounded-full animate-spin mb-4" />
-          <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Autonomous Scanning...</p>
-        </div>
       </div>
     </div>
   );
