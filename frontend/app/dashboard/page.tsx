@@ -6,7 +6,7 @@ import OnboardingForm from "@/components/OnboardingForm";
 import RiskCard from "@/components/RiskCard";
 import DependencyGraph from "@/components/DependencyGraph";
 import { MOCK_RISKS } from "@/lib/mockData";
-import { AlertCircle, TrendingUp, ShieldAlert, Globe, Filter, Search } from "lucide-react";
+import { AlertCircle, TrendingUp, ShieldAlert, Globe, Filter, Search, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
@@ -34,14 +34,15 @@ export default function DashboardPage() {
   }, [user?.business_id, context, setContext]);
 
   const [risks, setRisks] = useState<any[]>([]);
+  const [news, setNews] = useState<any[]>([]);
 
   useEffect(() => {
     if (user?.business_id) {
+      // Fetch risks
       fetch(`http://localhost:8000/api/business/${user.business_id}/risks`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
-            // Sort by priority (severity * probability) descending
             const sortedRisks = [...data].sort((a, b) => 
               (b.severity * b.probability) - (a.severity * a.probability)
             );
@@ -49,6 +50,16 @@ export default function DashboardPage() {
           }
         })
         .catch(err => console.error("Failed to fetch risks:", err));
+
+      // Fetch news
+      fetch(`http://localhost:8000/api/business/${user.business_id}/news`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setNews(data);
+          }
+        })
+        .catch(err => console.error("Failed to fetch news:", err));
     }
   }, [user?.business_id]);
 
@@ -110,30 +121,113 @@ export default function DashboardPage() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<ShieldAlert className="text-red-500" />} label="Critical Issues" value={criticalCount.toString()} />
-        <StatCard icon={<AlertCircle className="text-amber-500" />} label="Medium Risks" value={mediumCount.toString()} />
-        <StatCard icon={<TrendingUp className="text-blue-500" />} label="Market Trends" value="12" />
-        <StatCard icon={<Globe className="text-zinc-500" />} label="Sources Scanned" value="142" />
+        <StatCard 
+          icon={<ShieldAlert className="text-red-500" />} 
+          label="Critical Issues" 
+          value={criticalCount.toString()} 
+          tooltip="High-impact risks requiring immediate executive intervention."
+        />
+        <StatCard 
+          icon={<AlertCircle className="text-amber-500" />} 
+          label="Medium Risks" 
+          value={mediumCount.toString()} 
+          tooltip="Moderate risks monitored by operational teams for mitigation."
+        />
+        <StatCard 
+          icon={<Zap className="text-amber-500" />} 
+          label="Overload Rate" 
+          value="84%" 
+          tooltip="Current utilization of the most constrained facility in the supply chain."
+        />
+        <StatCard 
+          icon={<Globe className="text-emerald-500" />} 
+          label="Supply Chain Health" 
+          value="Stable" 
+          tooltip="Aggregate score of all active routes and entity stability."
+        />
       </div>
 
-      {/* Risk Feed Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {risks.map((risk: any) => (
-          <RiskCard key={risk.id} risk={risk} />
-        ))}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Risk Feed - Left Column (2/3) */}
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+            Intelligence Feed
+          </h2>
+          <div className="grid grid-cols-1 gap-6">
+            {risks.map((risk: any) => (
+              <RiskCard key={risk.id} risk={risk} />
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar - Right Column (1/3) */}
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">
+              Relevant News
+            </h2>
+            <div className="space-y-4">
+              {news.length > 0 ? (
+                news.map((item: any) => (
+                  <NewsCard 
+                    key={item.id}
+                    title={item.title} 
+                    summary={item.content} 
+                    time={new Date(item.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  />
+                ))
+              ) : (
+                <p className="text-xs text-zinc-500 italic">Scanning for relevant updates...</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">
+              Company Abstract
+            </h2>
+            <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Operating high-utilization assembly routes for Pixel 9 Pro. Current focus on diversification of battery suppliers to reduce sub-assembly bottleneck at South Korean facilities.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function NewsCard({ title, summary, time }: { title: string, summary: string, time: string }) {
   return (
-    <div className="risk-card p-5 rounded-2xl">
-      <div className="flex items-center gap-3 mb-3">
-        {icon}
-        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{label}</span>
+    <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors bg-white dark:bg-zinc-950">
+      <div className="flex justify-between items-start mb-1">
+        <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{title}</h4>
+        <span className="text-[10px] text-zinc-400 font-medium">{time}</span>
       </div>
-      <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{value}</div>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">{summary}</p>
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, description, tooltip }: { icon: React.ReactNode, label: string, value: string, description?: string, tooltip?: string }) {
+  return (
+    <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex flex-col gap-1 relative group cursor-help">
+      <div className="flex items-center gap-2 mb-1">
+        {icon}
+        <span className="text-xs font-medium text-zinc-500">{label}</span>
+      </div>
+      <div className="text-xl font-bold text-zinc-900 dark:text-zinc-50">{value}</div>
+      {description && <div className="text-[10px] text-zinc-400 mt-1">{description}</div>}
+      
+      {/* Tooltip */}
+      {tooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-zinc-900 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center shadow-2xl border border-white/10 backdrop-blur-sm">
+          {tooltip}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-[10px] border-transparent border-t-zinc-900" />
+        </div>
+      )}
     </div>
   );
 }
