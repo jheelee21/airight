@@ -32,6 +32,7 @@ export default function RiskCard({ risk }: { risk: any }) {
 
   return (
     <motion.div
+      id={`risk-${risk.id}`}
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       className="risk-card p-6 rounded-2xl flex flex-col gap-4 overflow-hidden relative border border-zinc-200 dark:border-zinc-800"

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Shield, ArrowRight, Mail, Lock } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -61,7 +62,7 @@ export default function LoginPage() {
             Welcome to Airight
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 text-center">
-            AI-driven Risk Intelligence for Consumer Electronics
+            AI-driven Risk Intelligence for <br/>Consumer Electronics Supply Chain
           </p>
 
           <form onSubmit={handleSubmit} className="w-full space-y-4">
@@ -72,11 +73,12 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
+                  placeholder="admin or email@company.com"
                   className="w-full bg-white/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  required
                 />
               </div>
             </div>
@@ -93,12 +95,14 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full bg-white/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  required
                 />
               </div>
             </div>
 
             <button
               type="submit"
+              disabled={isLoading}
               className={cn(
                 "w-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all mt-4",
                 isLoading && "opacity-50 cursor-not-allowed"
@@ -108,6 +112,15 @@ export default function LoginPage() {
               {!isLoading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
+
+          <div className="mt-8 text-center border-t border-zinc-100 dark:border-zinc-800 pt-6">
+            <p className="text-zinc-500 text-sm">
+              Don't have an account?{" "}
+              <Link href="/register" className="inline-block px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 ml-2">
+                Create one now
+              </Link>
+            </p>
+          </div>
 
           <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800 w-full text-center">
             <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">
