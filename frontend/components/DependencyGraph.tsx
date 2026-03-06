@@ -272,9 +272,10 @@ const initialEdges: Edge[] = [
 
 interface DependencyGraphProps {
   businessId?: number;
+  onDataLoaded?: (data: { nodes: any[], edges: any[] }) => void;
 }
 
-export default function DependencyGraph({ businessId }: DependencyGraphProps) {
+export default function DependencyGraph({ businessId, onDataLoaded }: DependencyGraphProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const risksVersion = useCompanyStore((state: any) => state.risksVersion);
@@ -497,6 +498,12 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
 
             setNodes(apiNodes);
             setEdges(apiEdges);
+
+            // Expose raw graph data to parent
+            onDataLoaded?.({
+              nodes: graphData.nodes.filter((n: any) => reachableToOEM.has(n.id.toString())),
+              edges: reachableEdges
+            });
           }
         })
         .catch(err => console.error("Failed to fetch graph data:", err));
@@ -504,7 +511,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
   }, [businessId, setNodes, setEdges, risksVersion]);
 
   return (
-    <div className="h-[400px] w-full glass-panel rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
+    <div className="h-[600px] w-full glass-panel rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
       <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 flex justify-between items-center">
         <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Supply Chain Dependency Graph</h3>
         <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Real-time Visualization</span>

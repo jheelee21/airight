@@ -7,7 +7,7 @@ import RiskCard from "@/components/RiskCard";
 import DependencyGraph from "@/components/DependencyGraph";
 
 import { AlertCircle, TrendingUp, ShieldAlert, Globe, Filter, Search, Zap } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function DashboardPage() {
   const { context, setContext, refreshIntelligence, isRefreshing } = useCompanyStore();
@@ -33,6 +33,11 @@ export default function DashboardPage() {
   const risksVersion = useCompanyStore((state: any) => state.risksVersion);
   const [risks, setRisks] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
+  const [graphData, setGraphData] = useState<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
+
+  const handleGraphDataLoaded = useCallback((data: { nodes: any[]; edges: any[] }) => {
+    setGraphData(data);
+  }, []);
 
   useEffect(() => {
     if (user?.business_id) {
@@ -130,7 +135,7 @@ export default function DashboardPage() {
 
       {/* Dependency Graph Section */}
       <div className="w-full">
-        <DependencyGraph businessId={user?.business_id} />
+        <DependencyGraph businessId={user?.business_id} onDataLoaded={handleGraphDataLoaded} />
       </div>
 
       {/* Stats Overview */}
@@ -170,7 +175,7 @@ export default function DashboardPage() {
           </h2>
           <div className="grid grid-cols-1 gap-6">
             {risks.map((risk: any) => (
-              <RiskCard key={risk.id} risk={risk} />
+              <RiskCard key={risk.id} risk={risk} news={news} graphData={graphData} />
             ))}
           </div>
         </div>
