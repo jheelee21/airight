@@ -26,3 +26,4 @@ class Risk(Base):
     actions = relationship(
         "Action", back_populates="risk", cascade="all, delete-orphan"
     )
+    news = relationship("News", back_populates="risk")
