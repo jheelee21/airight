@@ -3,7 +3,7 @@ from google.adk.tools import google_search
 
 from . import prompt
 
-MODEL = "gemini-3.1-flash-lite"
+MODEL = "gemini-3-flash-preview"
 
 news_scraper_agent = LlmAgent(
     model=MODEL,
