@@ -15,7 +15,7 @@ DBNAME = os.getenv("dbname")
 
 # Construct the SQLAlchemy connection string
 DATABASE_URL = (
-    f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}"
+    f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
 )
 
 # Create engine
@@ -38,11 +38,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-# Optional: test connection at startup
-try:
-    with engine.connect() as connection:
-        print("Connection successful!")
-except Exception as e:
-    print(f"Failed to connect: {e}")
