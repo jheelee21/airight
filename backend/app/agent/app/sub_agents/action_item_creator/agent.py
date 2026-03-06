@@ -4,7 +4,7 @@ from google.adk.tools import FunctionTool
 from . import prompt
 from app.agent.app.tools.bigtable_tools import get_risks_with_actions, create_action_items
 
-MODEL = "gemini-3.1-flash-lite-preview"
+MODEL = "gemini-2.5-flash-lite"
 
 action_item_creator_agent = LlmAgent(
     model=MODEL,

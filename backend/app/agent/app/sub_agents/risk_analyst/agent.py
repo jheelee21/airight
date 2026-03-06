@@ -2,7 +2,7 @@ from google.adk.agents import LlmAgent
 
 from . import prompt
 
-MODEL = "gemini-3.1-flash-lite-preview"
+MODEL = "gemini-2.5-flash-lite"
 
 risk_analyst_agent = LlmAgent(
     model=MODEL,

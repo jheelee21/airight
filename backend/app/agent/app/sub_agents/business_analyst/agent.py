@@ -4,7 +4,7 @@ from google.adk.tools import FunctionTool
 from . import prompt
 from app.agent.app.tools.bigtable_tools import create_supply_chain
 
-MODEL = "gemini-3.1-flash-lite-preview"
+MODEL = "gemini-2.5-flash-lite"
 
 # Only one FunctionTool now — create_supply_chain writes the entire graph
 # (business + entities + items + routes) in a single atomic DB transaction,
