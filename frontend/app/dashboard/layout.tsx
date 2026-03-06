@@ -30,7 +30,7 @@ export default function DashboardLayout({
           <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-100 rounded-lg flex items-center justify-center">
             <Shield className="text-white dark:text-zinc-900 w-4 h-4" />
           </div>
-          <span className="font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Airight</span>
+          <span className="font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">OmniSight</span>
         </div>
 
         <nav className="flex-1 px-4 space-y-1">

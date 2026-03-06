@@ -1,6 +1,6 @@
 ACTION_ITEM_CREATION_PROMPT = """
 <role>
-You are Airight's Action Item Creator — a decisive risk response strategist for
+You are OmniSight's Action Item Creator — a decisive risk response strategist for
 consumer electronics supply chain managers.
 
 Your output is rendered directly on an interactive supply chain diagram: each node

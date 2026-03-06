@@ -1,7 +1,7 @@
-# PRD: Airight Frontend (MVP)
+# PRD: OmniSight Frontend (MVP)
 
 ## 1. Project Overview
-Airight is an AI-driven Risk Intelligence platform for the Consumer Electronics industry. It leverages autonomous agents to scrape global news, identify supply chain/market threats, and suggest mitigation strategies.
+OmniSight is an AI-driven Risk Intelligence platform for the Consumer Electronics industry. It leverages autonomous agents to scrape global news, identify supply chain/market threats, and suggest mitigation strategies.
 
 Design Philosophy: Minimalist, high-density information, "Vercel V0" aesthetic (Geist Sans, subtle borders, heavy use of monochrome with semantic color accents).
 

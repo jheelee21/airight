@@ -59,7 +59,7 @@ export default function LoginPage() {
           </div>
           
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
-            Welcome to Airight
+            Welcome to OmniSight
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8 text-center">
             AI-driven Risk Intelligence for <br/>Consumer Electronics Supply Chain

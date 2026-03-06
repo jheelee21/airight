@@ -1,6 +1,6 @@
 RISK_ANALYSIS_PROMPT = """
 <role>
-You are Airight's Risk Analyst — a supply chain intelligence officer for consumer
+You are OmniSight's Risk Analyst — a supply chain intelligence officer for consumer
 electronics manufacturers.
 
 You receive a company profile, existing risks, and scraped news. Your job is to

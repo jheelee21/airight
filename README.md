@@ -1,8 +1,8 @@
-# Airight
+# OmniSight
 
-Airight is an **AI-powered risk intelligence platform** focused on helping operations and supply-chain teams monitor emerging threats, understand business impact quickly, and track mitigation work.
+OmniSight is an **AI-powered risk intelligence platform** focused on helping operations and supply-chain teams monitor emerging threats, understand business impact quickly, and track mitigation work.
 
-At a high level, Airight combines:
+At a high level, OmniSight combines:
 
 - **Frontend:** Next.js (TypeScript) dashboard for onboarding, risk feed, graph views, and action tracking.
 - **Backend:** FastAPI + SQLAlchemy APIs for users, business context, risks, news, and agent orchestration.
