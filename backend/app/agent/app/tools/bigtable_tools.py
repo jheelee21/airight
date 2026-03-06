@@ -68,21 +68,28 @@ def get_business_profile(business_id: int) -> str:
     try:
         # Business
         biz_row = session.execute(
-            text("SELECT id, name, description FROM business WHERE id = :bid"),
+            text("SELECT id, name, description, product_lines, competitors, regional_focus FROM business WHERE id = :bid"),
             {"bid": business_id},
         ).fetchone()
 
         if biz_row is None:
             return json.dumps({"error": f"Business with id={business_id} not found."})
 
-        business = {"id": biz_row[0], "name": biz_row[1], "description": biz_row[2]}
+        business = {
+            "id": biz_row[0],
+            "name": biz_row[1],
+            "description": biz_row[2],
+            "product_lines": biz_row[3],
+            "competitors": biz_row[4],
+            "regional_focus": biz_row[5],
+        }
 
         # Entities (supply-chain nodes)
         entities = _rows_to_dicts(
             session.execute(
                 text(
                     """
-                    SELECT id, name, description, location
+                    SELECT id, category, name, description, location
                     FROM entity
                     WHERE business_id = :bid
                     ORDER BY id
@@ -337,16 +344,25 @@ def get_risks_with_actions(business_id: int) -> str:
 # Used by: business_analyst_agent
 # ---------------------------------------------------------------------------
 
-def create_business(name: str, description: str) -> str:
+def create_business(
+    name: str,
+    description: str,
+    product_lines: Optional[str] = None,
+    competitors: Optional[str] = None,
+    regional_focus: Optional[str] = None,
+) -> str:
     """
     Insert a new business record into the database.
 
     Args:
         name:        The company's trading name.
         description: One-paragraph description of what the company makes and does.
+        product_lines: Comma-separated products/product families.
+        competitors:  Comma-separated competitor names.
+        regional_focus: Comma-separated key regions/countries the business serves.
 
     Returns:
-        JSON string with the new business id, name, and description,
+        JSON string with the new business fields,
         or an error message if the insert failed.
     """
     session = _get_session()
@@ -354,15 +370,33 @@ def create_business(name: str, description: str) -> str:
         result = session.execute(
             text(
                 """
-                INSERT INTO business (name, description)
-                VALUES (:name, :description)
-                RETURNING id, name, description
+                INSERT INTO business (
+                    name, description, product_lines, competitors, regional_focus
+                )
+                VALUES (
+                    :name, :description, :product_lines, :competitors, :regional_focus
+                )
+                RETURNING
+                    id, name, description, product_lines, competitors, regional_focus
                 """
             ),
-            {"name": name, "description": description},
+            {
+                "name": name,
+                "description": description,
+                "product_lines": product_lines,
+                "competitors": competitors,
+                "regional_focus": regional_focus,
+            },
         ).fetchone()
         session.commit()
-        return json.dumps({"id": result[0], "name": result[1], "description": result[2]})
+        return json.dumps({
+            "id": result[0],
+            "name": result[1],
+            "description": result[2],
+            "product_lines": result[3],
+            "competitors": result[4],
+            "regional_focus": result[5],
+        })
     except Exception as exc:
         session.rollback()
         return json.dumps({"error": str(exc)})
@@ -377,6 +411,7 @@ def create_business(name: str, description: str) -> str:
 
 def create_entity(
     business_id: int,
+    category: str,
     name: str,
     description: str,
     location: str,
@@ -387,6 +422,8 @@ def create_entity(
 
     Args:
         business_id: The primary key of the owning business.
+        category:    Entity type. Must be one of: supplier, factory,
+                     warehouse, distribution_center, port_hub, oem_customer, other.
         name:        Short identifying name for the entity (e.g. "Foxconn Shenzhen").
         description: Role and function of this node in the supply chain
                      (e.g. "Tier-1 assembly factory producing camera modules").
@@ -395,18 +432,36 @@ def create_entity(
     Returns:
         JSON string with the new entity's id and fields, or an error message.
     """
+    allowed_categories = {
+        "supplier",
+        "factory",
+        "warehouse",
+        "distribution_center",
+        "port_hub",
+        "oem_customer",
+        "other",
+    }
+    if category not in allowed_categories:
+        return json.dumps({
+            "error": (
+                f"Invalid category '{category}'. Must be one of: "
+                f"{sorted(allowed_categories)}"
+            )
+        })
+
     session = _get_session()
     try:
         result = session.execute(
             text(
                 """
-                INSERT INTO entity (business_id, name, description, location)
-                VALUES (:bid, :name, :description, :location)
-                RETURNING id, business_id, name, description, location
+                INSERT INTO entity (business_id, category, name, description, location)
+                VALUES (:bid, :category, :name, :description, :location)
+                RETURNING id, business_id, category, name, description, location
                 """
             ),
             {
                 "bid": business_id,
+                "category": category,
                 "name": name,
                 "description": description,
                 "location": location,
@@ -416,9 +471,10 @@ def create_entity(
         return json.dumps({
             "id": result[0],
             "business_id": result[1],
-            "name": result[2],
-            "description": result[3],
-            "location": result[4],
+            "category": result[2],
+            "name": result[3],
+            "description": result[4],
+            "location": result[5],
         })
     except Exception as exc:
         session.rollback()
