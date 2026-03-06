@@ -5,7 +5,7 @@ from .action import ActionSchema
 
 class RiskBase(BaseModel):
     business_id: int
-    target_type: str = Field(..., pattern="^(node|route)$")
+    target_type: str = Field(..., pattern="^(entity|route)$")
     target_id: int
     category: str
     severity: float = Field(..., ge=0.0, le=1.0)

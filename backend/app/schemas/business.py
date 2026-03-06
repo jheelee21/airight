@@ -1,15 +1,38 @@
+from typing import Optional, List
 from pydantic import BaseModel
-from typing import List, Optional
+
+
+class BusinessUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    product_lines: Optional[str] = None
+    competitors: Optional[str] = None
+    regional_focus: Optional[str] = None
+
+
+class BusinessResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    product_lines: Optional[str] = None
+    competitors: Optional[str] = None
+    regional_focus: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 
 class EntitySchema(BaseModel):
     id: int
     business_id: int
+    category: str
     name: str
     description: str
     location: str
 
     class Config:
         from_attributes = True
+
 
 class RouteSchema(BaseModel):
     id: int
@@ -25,6 +48,7 @@ class RouteSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class GraphResponse(BaseModel):
     business_id: int

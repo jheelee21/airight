@@ -14,6 +14,7 @@ class Entity(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     business_id = Column(Integer, ForeignKey("business.id"), nullable=False)
+    category = Column(String, nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
     location = Column(String, nullable=False)
