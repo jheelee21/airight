@@ -34,32 +34,32 @@ const EntityNode = ({ data }: { data: any }) => {
 
   const nodeStyles: Record<string, { badge: string, iconCont: string, categoryText: string, border: string, bg: string }> = {
     factory: { 
-      badge: "bg-amber-500", 
-      iconCont: "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400",
-      categoryText: "text-amber-500",
-      border: "border-amber-400",
-      bg: "bg-white dark:bg-zinc-950"
+      badge: "!bg-amber-500", 
+      iconCont: "!bg-amber-50 dark:!bg-amber-900/30 !border-amber-200 dark:!border-amber-700 !text-amber-600 dark:!text-amber-400",
+      categoryText: "!text-amber-500",
+      border: "!border-amber-400",
+      bg: "!bg-white dark:!bg-zinc-950"
     },
     inventory: { 
-      badge: "bg-amber-500", 
-      iconCont: "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400",
-      categoryText: "text-amber-500",
-      border: "border-amber-400",
-      bg: "bg-white dark:bg-zinc-950"
+      badge: "!bg-amber-500", 
+      iconCont: "!bg-amber-50 dark:!bg-amber-900/30 !border-amber-200 dark:!border-amber-700 !text-amber-600 dark:!text-amber-400",
+      categoryText: "!text-amber-500",
+      border: "!border-amber-400",
+      bg: "!bg-white dark:!bg-zinc-950"
     },
     oem: { 
-      badge: "bg-zinc-900 dark:bg-white", 
-      iconCont: "bg-zinc-900 border-zinc-700 text-white",
-      categoryText: "text-zinc-400",
-      border: "border-zinc-900 dark:border-zinc-100",
-      bg: "bg-zinc-900 text-white"
+      badge: "!bg-zinc-900 dark:!bg-white", 
+      iconCont: "!bg-zinc-900 !border-zinc-700 !text-white",
+      categoryText: "!text-zinc-400",
+      border: "!border-zinc-900 dark:!border-zinc-100",
+      bg: "!bg-zinc-900 !text-white"
     },
     supplier: { 
-      badge: "bg-zinc-500", 
-      iconCont: "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500",
-      categoryText: "text-zinc-400",
-      border: "border-zinc-300 dark:border-zinc-700",
-      bg: "bg-zinc-50 dark:bg-zinc-900"
+      badge: "!bg-zinc-500", 
+      iconCont: "!bg-zinc-50 dark:!bg-zinc-900 !border-zinc-200 dark:!border-zinc-800 !text-zinc-500",
+      categoryText: "!text-zinc-400",
+      border: "!border-zinc-300 dark:!border-zinc-700",
+      bg: "!bg-zinc-50 dark:!bg-zinc-900"
     }
   };
 
@@ -67,16 +67,37 @@ const EntityNode = ({ data }: { data: any }) => {
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-500 min-h-[120px] relative w-full h-full bg-white dark:bg-zinc-950",
+      "flex flex-col items-center justify-center !p-3 !rounded-2xl transition-all duration-500 !min-h-[120px] relative w-full h-full !bg-white dark:!bg-zinc-950",
       nodeStyle.border,
-      isInternal ? "shadow-xl ring-2 ring-emerald-500/10 border-8" : "border-4",
-      data.hasRisk ? "ring-8 ring-offset-4 ring-red-500/50" : ""
+      isInternal ? "!shadow-xl !ring-2 !ring-emerald-500/10 !border-8" : "!border-4",
+      data.hasRisk ? "!ring-8 !ring-offset-4 !ring-red-500/50" : ""
     )}
     >
       {/* Risk Indicator Icon */}
       {data.hasRisk && (
-        <div className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-xl animate-bounce z-20">
-          <AlertTriangle className="w-4 h-4 text-white" />
+        <div 
+          className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-xl animate-bounce z-20 cursor-pointer hover:scale-110 transition-transform nopan nodrag"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const riskId = data.riskId;
+            console.log('Warning clicked, riskId:', riskId);
+            if (riskId) {
+              const element = document.getElementById(`risk-${riskId}`);
+              console.log('Found element:', element);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
+                setTimeout(() => {
+                  element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
+                }, 3000);
+              }
+            }
+          }}
+        >
+          <AlertTriangle className="w-4 h-4 text-white pointer-events-none" />
         </div>
       )}
       <Handle 
@@ -367,6 +388,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -375,10 +397,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
           if (riskId) {
             const element = document.getElementById(`risk-${riskId}`);
             if (element) {
-              window.scrollTo({
-                top: element.getBoundingClientRect().top + window.scrollY - 150,
-                behavior: 'smooth'
-              });
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
               
               element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
               setTimeout(() => {
@@ -392,11 +411,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
           if (riskId) {
             const element = document.getElementById(`risk-${riskId}`);
             if (element) {
-              window.scrollTo({
-                top: element.getBoundingClientRect().top + window.scrollY - 150,
-                behavior: 'smooth'
-              });
-              
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
               element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
               setTimeout(() => {
                 element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
