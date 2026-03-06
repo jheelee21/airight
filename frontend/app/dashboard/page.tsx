@@ -33,6 +33,7 @@ export default function DashboardPage() {
     }
   }, [user?.business_id, context, setContext]);
 
+  const risksVersion = useCompanyStore((state: any) => state.risksVersion);
   const [risks, setRisks] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
 
@@ -61,7 +62,7 @@ export default function DashboardPage() {
         })
         .catch(err => console.error("Failed to fetch news:", err));
     }
-  }, [user?.business_id]);
+  }, [user?.business_id, risksVersion]);
 
   if (isLoading) {
     return (

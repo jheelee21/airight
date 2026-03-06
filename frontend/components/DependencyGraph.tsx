@@ -18,6 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Factory, Warehouse, Cpu, Truck, HardHat, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCompanyStore } from '@/store/companyStore';
 
 // Custom Node Types
 const EntityNode = ({ data }: { data: any }) => {
@@ -34,49 +35,95 @@ const EntityNode = ({ data }: { data: any }) => {
 
   const nodeStyles: Record<string, { badge: string, iconCont: string, categoryText: string, border: string, bg: string }> = {
     factory: { 
-      badge: "bg-amber-500", 
-      iconCont: "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400",
-      categoryText: "text-amber-500",
-      border: "border-amber-400",
-      bg: "bg-white dark:bg-zinc-950"
+      badge: "!bg-amber-500", 
+      iconCont: "!bg-amber-50 dark:!bg-amber-900/30 !border-amber-200 dark:!border-amber-700 !text-amber-600 dark:!text-amber-400",
+      categoryText: "!text-amber-500",
+      border: "!border-amber-400",
+      bg: "!bg-white dark:!bg-zinc-950"
     },
     inventory: { 
-      badge: "bg-amber-500", 
-      iconCont: "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400",
-      categoryText: "text-amber-500",
-      border: "border-amber-400",
-      bg: "bg-white dark:bg-zinc-950"
+      badge: "!bg-amber-500", 
+      iconCont: "!bg-amber-50 dark:!bg-amber-900/30 !border-amber-200 dark:!border-amber-700 !text-amber-600 dark:!text-amber-400",
+      categoryText: "!text-amber-500",
+      border: "!border-amber-400",
+      bg: "!bg-white dark:!bg-zinc-950"
     },
     oem: { 
-      badge: "bg-zinc-900 dark:bg-white", 
-      iconCont: "bg-zinc-900 border-zinc-700 text-white",
-      categoryText: "text-zinc-400",
-      border: "border-zinc-900 dark:border-zinc-100",
-      bg: "bg-zinc-900 text-white"
+      badge: "!bg-zinc-900 dark:!bg-white", 
+      iconCont: "!bg-zinc-900 !border-zinc-700 !text-white",
+      categoryText: "!text-zinc-400",
+      border: "!border-zinc-900 dark:!border-zinc-100",
+      bg: "!bg-zinc-900 !text-white"
     },
     supplier: { 
-      badge: "bg-zinc-500", 
-      iconCont: "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500",
-      categoryText: "text-zinc-400",
-      border: "border-zinc-300 dark:border-zinc-700",
-      bg: "bg-zinc-50 dark:bg-zinc-900"
+      badge: "!bg-zinc-500", 
+      iconCont: "!bg-zinc-50 dark:!bg-zinc-900 !border-zinc-200 dark:!border-zinc-800 !text-zinc-500",
+      categoryText: "!text-zinc-400",
+      border: "!border-zinc-300 dark:!border-zinc-700",
+      bg: "!bg-zinc-50 dark:!bg-zinc-900"
     }
   };
 
   const nodeStyle = nodeStyles[category] || nodeStyles.supplier;
+  const riskStatus = data.riskStatus || (data.hasRisk ? 'active' : null);
+  
+  const riskStyles: Record<string, { ring: string, badge: string, icon: string }> = {
+    active: { 
+      ring: "!ring-red-500/50", 
+      badge: "bg-red-500",
+      icon: "text-white"
+    },
+    doing: { 
+      ring: "!ring-blue-500/50", 
+      badge: "bg-blue-500",
+      icon: "text-white"
+    },
+    complete: { 
+      ring: "!ring-emerald-500/50", 
+      badge: "bg-emerald-500",
+      icon: "text-white"
+    }
+  };
+
+  const riskStyle = riskStatus ? riskStyles[riskStatus] : null;
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-500 min-h-[120px] relative w-full h-full bg-white dark:bg-zinc-950",
+      "flex flex-col items-center justify-center !p-3 !rounded-2xl transition-all duration-500 !min-h-[120px] relative w-full h-full !bg-white dark:!bg-zinc-950",
       nodeStyle.border,
-      isInternal ? "shadow-xl ring-2 ring-emerald-500/10 border-8" : "border-4",
-      data.hasRisk ? "ring-8 ring-offset-4 ring-red-500/50" : ""
+      isInternal ? "!shadow-xl !ring-2 !ring-emerald-500/10 !border-8" : "!border-4",
+      riskStyle ? `!ring-8 !ring-offset-4 ${riskStyle.ring}` : ""
     )}
     >
       {/* Risk Indicator Icon */}
-      {data.hasRisk && (
-        <div className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-xl animate-bounce z-20">
-          <AlertTriangle className="w-4 h-4 text-white" />
+      {riskStatus && (
+        <div 
+          className={cn(
+            "absolute -top-2 -right-2 rounded-full p-1.5 shadow-xl z-20 cursor-pointer hover:scale-110 transition-transform nopan nodrag",
+            riskStyle?.badge,
+            riskStatus !== 'complete' && "animate-bounce"
+          )}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            const riskId = data.riskId;
+            console.log('Warning clicked, riskId:', riskId);
+            if (riskId) {
+              const element = document.getElementById(`risk-${riskId}`);
+              console.log('Found element:', element);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
+                setTimeout(() => {
+                  element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
+                }, 3000);
+              }
+            }
+          }}
+        >
+          <AlertTriangle className="w-4 h-4 text-white pointer-events-none" />
         </div>
       )}
       <Handle 
@@ -205,6 +252,7 @@ interface DependencyGraphProps {
 export default function DependencyGraph({ businessId }: DependencyGraphProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const risksVersion = useCompanyStore((state: any) => state.risksVersion);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -274,28 +322,53 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
               reachableToOEM.has(e.end_entity_id.toString())
             );
 
-            // Mapping for focus effect
-            const entityToRiskMap: Record<string, string> = {};
-            const routeToRiskMap: Record<string, string> = {};
+            // Mapping for focus effect and progress status
+            const entityToRiskData: Record<string, any> = {};
+            const routeToRiskData: Record<string, any> = {};
             
+            const getRiskStatus = (risk: any) => {
+              if (!risk) return null;
+              const actions = risk.actions || [];
+              if (actions.length === 0) return 'active';
+              
+              if (actions.every((a: any) => a.implementation_status === 'Complete')) return 'complete';
+              if (actions.some((a: any) => a.implementation_status === 'Doing' || a.implementation_status === 'Complete')) return 'doing';
+              
+              return 'active';
+            };
+
             riskData.forEach((r: any) => {
+              const status = getRiskStatus(r);
               if (r.target_type === 'entity') {
-                entityToRiskMap[r.target_id.toString()] = r.id.toString();
+                entityToRiskData[r.target_id.toString()] = { id: r.id.toString(), status };
               } else if (r.target_type === 'route') {
-                routeToRiskMap[r.target_id.toString()] = r.id.toString();
+                routeToRiskData[r.target_id.toString()] = { id: r.id.toString(), status };
               }
             });
 
-            // Risky IDs (for highlighting)
-            const riskyEntityIds = new Set(Object.keys(entityToRiskMap));
-            const riskyRouteIds = new Set(Object.keys(routeToRiskMap));
+            // Collect all statuses for a node to pick the 'most active'
+            const nodeToRiskStatus: Record<string, string> = {};
+            const nodeToRiskId: Record<string, string> = {};
 
-            // Nodes associated with risks in the reachable set
-            const associatedRiskyNodeIds = new Set(riskyEntityIds);
+            const updateNodeStatus = (nodeId: string, status: string, riskId: string) => {
+              const currentStatus = nodeToRiskStatus[nodeId];
+              const priority: Record<string, number> = { 'active': 3, 'doing': 2, 'complete': 1 };
+              
+              if (!currentStatus || (priority[status] || 0) > (priority[currentStatus] || 0)) {
+                nodeToRiskStatus[nodeId] = status;
+                nodeToRiskId[nodeId] = riskId;
+              }
+            };
+
+            Object.keys(entityToRiskData).forEach(id => {
+              updateNodeStatus(id, entityToRiskData[id].status, entityToRiskData[id].id);
+            });
+
             reachableEdges.forEach((e: any) => {
-              if (riskyRouteIds.has(e.id.toString())) {
-                associatedRiskyNodeIds.add(e.start_entity_id.toString());
-                associatedRiskyNodeIds.add(e.end_entity_id.toString());
+              const routeRisk = routeToRiskData[e.id.toString()];
+              if (routeRisk) {
+                updateNodeStatus(e.start_entity_id.toString(), routeRisk.status, routeRisk.id);
+                updateNodeStatus(e.end_entity_id.toString(), routeRisk.status, routeRisk.id);
               }
             });
 
@@ -310,7 +383,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                 yCounts[y]++;
 
                 const isInternal = category === 'factory' || category === 'inventory';
-                const hasRisk = associatedRiskyNodeIds.has(n.id.toString());
+                const riskStatus = nodeToRiskStatus[n.id.toString()];
 
                 return {
                   id: n.id.toString(),
@@ -319,15 +392,25 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                   data: { 
                     label: n.name, 
                     category: category,
-                    hasRisk: hasRisk,
-                    riskId: entityToRiskMap[n.id.toString()]
+                    riskStatus: riskStatus,
+                    riskId: nodeToRiskId[n.id.toString()]
                   }
                 };
               });
 
             const apiEdges = reachableEdges.map((e: any) => {
-              const hasRisk = riskyRouteIds.has(e.id.toString());
-              const color = hasRisk ? '#ef4444' : '#d4d4d8'; // zinc-300 for better visibility in light mode
+              const routeRisk = routeToRiskData[e.id.toString()];
+              const riskStatus = routeRisk?.status;
+              
+              const statusColors: Record<string, string> = {
+                'active': '#ef4444',
+                'doing': '#3b82f6',
+                'complete': '#10b981'
+              };
+              
+              const color = statusColors[riskStatus || ''] || '#d4d4d8';
+              const hasRisk = !!riskStatus;
+
               return {
                 id: `e${e.id}`,
                 source: e.start_entity_id.toString(),
@@ -340,12 +423,17 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                   opacity: 1 
                 },
                 markerEnd: { type: MarkerType.ArrowClosed, color: color },
-                labelStyle: { fontSize: '10px', fill: hasRisk ? '#ef4444' : '#71717a', fontWeight: '700', opacity: hasRisk ? 1 : 0.8 },
+                labelStyle: { 
+                  fontSize: '10px', 
+                  fill: color === '#d4d4d8' ? '#71717a' : color, 
+                  fontWeight: '700', 
+                  opacity: hasRisk ? 1 : 0.8 
+                },
                 labelBgStyle: { fill: '#fff', fillOpacity: 0.9 },
                 labelBgPadding: [6, 4],
                 labelBgBorderRadius: 4,
                 data: {
-                  riskId: routeToRiskMap[e.id.toString()]
+                  riskId: routeRisk?.id
                 }
               };
             });
@@ -356,7 +444,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
         })
         .catch(err => console.error("Failed to fetch graph data:", err));
     }
-  }, [businessId, setNodes, setEdges]);
+  }, [businessId, setNodes, setEdges, risksVersion]);
 
   return (
     <div className="h-[400px] w-full glass-panel rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
@@ -367,6 +455,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -375,10 +464,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
           if (riskId) {
             const element = document.getElementById(`risk-${riskId}`);
             if (element) {
-              window.scrollTo({
-                top: element.getBoundingClientRect().top + window.scrollY - 150,
-                behavior: 'smooth'
-              });
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
               
               element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
               setTimeout(() => {
@@ -392,11 +478,7 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
           if (riskId) {
             const element = document.getElementById(`risk-${riskId}`);
             if (element) {
-              window.scrollTo({
-                top: element.getBoundingClientRect().top + window.scrollY - 150,
-                behavior: 'smooth'
-              });
-              
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
               element.classList.add('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');
               setTimeout(() => {
                 element.classList.remove('ring-4', 'ring-blue-500', 'ring-offset-8', 'z-50', 'scale-[1.02]');

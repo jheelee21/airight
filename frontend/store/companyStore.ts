@@ -15,6 +15,8 @@ interface CompanyState {
   setContext: (context: CompanyContext) => void;
   updateContext: (businessId: number, context: CompanyContext) => Promise<void>;
   clearContext: () => void;
+  risksVersion: number;
+  triggerRisksRefresh: () => void;
 }
 
 export const useCompanyStore = create<CompanyState>()(
@@ -40,6 +42,8 @@ export const useCompanyStore = create<CompanyState>()(
         }
       },
       clearContext: () => set({ context: null, businessId: null }),
+      risksVersion: 0,
+      triggerRisksRefresh: () => set((state) => ({ risksVersion: state.risksVersion + 1 })),
     }),
     {
       name: "company-storage",
