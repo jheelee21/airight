@@ -1,11 +1,8 @@
+import json
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
-from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
-from google.genai import types
 
-from app.agent.app.agent import root_agent
 from app.schemas.agent import AgentFlowRequest, AgentFlowResponse
 
 router = APIRouter(prefix="/api/agent", tags=["Agent"])
@@ -34,6 +31,11 @@ def _build_prompt(payload: AgentFlowRequest) -> tuple[str, str]:
 
 @router.post("/flow", response_model=AgentFlowResponse)
 async def run_agent_flow(payload: AgentFlowRequest):
+    from google.adk.runners import Runner                  # noqa: PLC0415
+    from google.adk.sessions import InMemorySessionService  # noqa: PLC0415
+    from google.genai import types                          # noqa: PLC0415
+    from app.agent.app.agent import root_agent             # noqa: PLC0415
+
     input_mode, prompt_text = _build_prompt(payload)
 
     session_service = InMemorySessionService()
@@ -67,7 +69,11 @@ async def run_agent_flow(payload: AgentFlowRequest):
             if not event.content or not event.content.parts:
                 continue
 
-            texts = [part.text for part in event.content.parts if getattr(part, "text", None)]
+            texts = [
+                part.text
+                for part in event.content.parts
+                if getattr(part, "text", None)
+            ]
             if not texts:
                 continue
 
@@ -79,16 +85,18 @@ async def run_agent_flow(payload: AgentFlowRequest):
 
             if event.is_final_response():
                 final_response = text
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Failed to run agents flow: {exc}")
 
-    import json
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to run agents flow: {exc}"
+        )
+
     biz_id = None
     if final_response:
         try:
             data = json.loads(final_response)
             biz_id = data.get("business_id")
-        except:
+        except Exception:
             pass
 
     return AgentFlowResponse(
