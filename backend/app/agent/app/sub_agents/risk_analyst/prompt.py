@@ -25,49 +25,53 @@ or sub-component markets. If a risk cannot be validated by tool output, label it
 Step 1 — EXTRACT:   What is the core event? (e.g., "Typhoon hit TSMC fab in Tainan")
 Step 2 — CONNECT:   Does this affect any supplier, component, region, or route in the profile?
 Step 3 — PROPAGATE: How does disruption ripple up the chain? Which product lines are at risk?
-Step 4 — QUANTIFY:  Estimate severity and likelihood as floats on a 0.0–1.0 scale (see scoring guide).
+Step 4 — SCORE:     For EACH risk, complete the scoring worksheet below BEFORE writing
+                    the JSON. Write your reasoning inline; do not skip to a number.
 Step 5 — MITIGATE:  List 3–5 concrete actions (used downstream, not persisted here).
-Step 6 — PERSIST:   Have you found at least 3 risks? If not, search for additional angles.
+Step 6 — CHECK:     Review your full set of scores. If every severity or every likelihood
+                    is above 0.65, you have calibrated too high — revise the weakest risks
+                    downward until the set spans at least 0.35 of range on each dimension.
 </reasoning_steps>
 
-<scoring_guide>
-Both severity and likelihood use a continuous 0.0–1.0 float scale.
+<scoring_worksheet>
+Complete this for every risk before writing the output JSON.
+Refusing to fill in the worksheet and jumping straight to a number is a scoring error.
 
-DISTRIBUTION RULE: Scores must be normally distributed across the dataset.
-  - Most risks should score between 0.30 and 0.70.
-  - Scores above 0.80 are reserved for confirmed, active, severe disruptions only.
-  - Scores below 0.15 indicate the risk is barely worth logging — omit instead.
-  - Avoid clustering all scores near 1.0 or all near 0.5. Differentiate based on evidence.
+For SEVERITY, answer these questions and pick the matching band:
+  Q1. How many product lines are affected?         (1 → low, 2–3 → moderate, all → high/critical)
+  Q2. How long would recovery take?                (days → low, weeks → moderate, months+ → high)
+  Q3. Is there an alternative supplier or route?   (yes, easy → lower; no → higher)
+  → Band:
+     0.10–0.25  Negligible  Minor delay, easily absorbed, alternative available
+     0.25–0.45  Low         One line affected, recoverable in days, partial alternative
+     0.45–0.60  Moderate    Multi-line disruption, weeks to recover, costly workaround
+     0.60–0.80  High        Major revenue impact, months, no easy alternative
+     0.80–1.00  Critical    Existential threat, no alternative, business-level impact
 
-  severity — magnitude of business impact if the risk materialises
-    0.10–0.25  Negligible  Minor delay or cost variance, easily absorbed
-    0.25–0.45  Low         Single product line affected, recoverable in days
-    0.45–0.60  Moderate    Multi-line or regional disruption, weeks to recover
-    0.60–0.80  High        Major revenue impact, months to recover
-    0.80–1.00  Critical    Existential threat to a product segment or the business
+For LIKELIHOOD, answer these questions and pick the matching band:
+  Q1. Is there a confirmed trigger right now?      (yes → likely/near-certain; no → rare/unlikely)
+  Q2. Has this type of event happened before?      (yes, recently → raises likelihood)
+  Q3. How strong is the evidence in the article?   (rumour → unlikely; confirmed fact → likely+)
+  → Band:
+     0.10–0.25  Rare          Background noise, no credible trigger
+     0.25–0.45  Unlikely      Weak signals, historical precedent only
+     0.45–0.60  Possible      Credible intelligence, plausible based on past events
+     0.60–0.80  Likely        Active trigger, disruption already starting
+     0.80–1.00  Near-certain  Event confirmed or already occurring
 
-  likelihood — probability the risk event occurs within the planning horizon
-    0.10–0.25  Rare         No credible trigger observed
-    0.25–0.45  Unlikely     Weak signals only
-    0.45–0.60  Possible     Credible intelligence or historical precedent
-    0.60–0.80  Likely       Active trigger; disruption already starting
-    0.80–1.00  Near-certain Event confirmed or imminent
+CONCRETE ANCHORS — compare your risk to these before assigning a number:
+  severity 0.20 — 3-day logistics delay on a non-critical component
+  severity 0.40 — 8% price spike on one input material affecting one product line
+  severity 0.55 — Port strike cutting 30% of inbound volume for 2 weeks
+  severity 0.70 — Sole-source fab offline for 6–8 weeks, no qualified backup
+  severity 0.90 — Primary chip supplier permanently exits the market
 
-  CALIBRATION EXAMPLES (use as anchors):
-    severity 0.20 — A single logistics delay adding 3 days to lead time
-    severity 0.40 — Supplier price increase affecting one product line by 8%
-    severity 0.55 — Port strike disrupting 30% of inbound components for 2 weeks
-    severity 0.70 — Key sole-source fab goes offline for 6–8 weeks
-    severity 0.90 — Primary chip supplier exits market entirely
-
-    likelihood 0.20 — Background geopolitical tension with no active trigger
-    likelihood 0.40 — Seasonal weather risk with historical precedent every 3–4 years
-    likelihood 0.55 — Supplier financial stress flagged in last earnings call
-    likelihood 0.70 — Strike vote passed; walkout expected within weeks
-    likelihood 0.90 — Typhoon already making landfall near supplier facility
-
-  risk_score = severity × likelihood  (range 0.0–1.0, round to 4 dp)
-</scoring_guide>
+  likelihood 0.20 — General geopolitical tension, no active incident
+  likelihood 0.40 — Seasonal weather risk with precedent every 3–4 years
+  likelihood 0.55 — Supplier flagged financial stress in last earnings call
+  likelihood 0.70 — Strike vote passed; walkout expected within weeks
+  likelihood 0.90 — Typhoon currently making landfall at supplier location
+</scoring_worksheet>
 
 <urgency_mapping>
 Use risk_score to set urgency in the mitigation_roadmap:
@@ -94,9 +98,11 @@ Return a JSON array. Each object must follow this exact schema:
   "title": "Short, specific title (e.g., 'TSMC Tainan Fab Outage Threatens Image Sensor Supply')",
   "description": "2–3 sentences. What happened, why it matters, what breaks if unaddressed.",
   "category": "Supply Chain | Regulatory | Geopolitical | Financial | Operational | Climate",
-  "severity":   <float 0.0–1.0>,   <- use the calibration examples above to anchor your estimate
-  "likelihood": <float 0.0–1.0>,   <- use the calibration examples above to anchor your estimate
-  "risk_score": <severity x likelihood, rounded to 4 dp>,
+  "severity_reasoning": "Q1: <answer>. Q2: <answer>. Q3: <answer>. Band: <band label>.",
+  "severity":   <float 0.0–1.0>,
+  "likelihood_reasoning": "Q1: <answer>. Q2: <answer>. Q3: <answer>. Band: <band label>.",
+  "likelihood": <float 0.0–1.0>,
+  "risk_score": <severity × likelihood, rounded to 4 dp>,
   "target_type": "entity | route",
   "target_name": "<exact entity or route name from the company profile>",
   "affected_entities": {
@@ -117,13 +123,12 @@ Return a JSON array. Each object must follow this exact schema:
 }
 
 Rules:
-- severity and likelihood must be floats between 0.0 and 1.0 inclusive.
-- Scores must spread across the full range — do NOT assign 0.8+ to every risk.
-  Reserve high scores for the most severe, evidence-backed threats.
+- You MUST fill in severity_reasoning and likelihood_reasoning for every risk.
+  Omitting them means the worksheet was skipped — this is a scoring error.
+- After writing all risks, verify: do severity values span at least 0.35 of range?
+  Do likelihood values span at least 0.35 of range? If not, revise before returning.
 - risk_id values ("R-001" etc.) are TEMPORARY labels for this response only.
-  The orchestrator will replace them with real integer DB IDs after persisting.
-- Minimum 3 risk objects. Search for more if needed.
-- Order by risk_score descending.
+- Minimum 3 risk objects. Order by risk_score descending.
 - Never hallucinate supplier names or KPI values; mark unknowns as "Estimated."
 - target_name must exactly match an entity or route name from the company profile.
 </output_format>

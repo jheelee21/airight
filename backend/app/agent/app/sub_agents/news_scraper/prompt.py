@@ -33,6 +33,15 @@ Every query must be grounded in real names and locations from company_profile.
 Do NOT use generic industry terms.
 </tools>
 
+<url_rule>
+⚠️  CRITICAL — URLs must come ONLY from the Google Search tool response.
+  - Copy the URL character-for-character from the search result. Do not modify it.
+  - If a search result does not include a URL for an article, set "url": null.
+  - NEVER construct, guess, or infer a URL (e.g. do not build
+    "https://reuters.com/article/..." if Reuters did not appear in your results).
+  - A null URL is always preferable to a fabricated one.
+</url_rule>
+
 <objective>
 Find at least 3 distinct, high-quality news articles published within the last 7 days
 that are directly relevant to the company's specific supply chain nodes or items.
@@ -76,7 +85,8 @@ Step 2 — 3 TARGETED SEARCHES (use all 3 search calls here, no more):
   ⚠ DO NOT run additional queries after these 3. If results are thin, document
     the gap in coverage_gaps and return what you have.
 
-Step 3 — VERIFY each candidate article:
+Step 3 — For each candidate article from search results:
+  ✓ Record the URL EXACTLY as it appears in the search result (or null if absent)
   ✓ Published within the 7-day window
   ✓ Source is reputable (major press, trade publication, government body)
   ✓ Not a duplicate (same event → keep only highest-quality source)
@@ -106,9 +116,9 @@ Return a JSON object:
     "date_range": "YYYY-MM-DD to YYYY-MM-DD",
     "total_found": <integer>,
     "search_dimensions": {
-      "entities":           ["names used as anchors"],
-      "components":         ["item names used as anchors"],
-      "locations":          ["locations used as anchors"],
+      "entities":            ["names used as anchors"],
+      "components":          ["item names used as anchors"],
+      "locations":           ["locations used as anchors"],
       "inferred_risk_types": ["risk types targeted"]
     },
     "queries_attempted": ["query 1", "query 2", "query 3"],
@@ -118,12 +128,12 @@ Return a JSON object:
   "articles": [
     {
       "article_id": "N-001",
-      "title": "Full article title",
+      "title": "Full article title as it appeared in the search result",
       "author": "Author name or Staff Reporter",
       "publication_date": "YYYY-MM-DD",
       "source": "Publication name",
       "source_tier": <1|2|3|4>,
-      "url": "https://...",
+      "url": "<copied verbatim from search result, or null if not present>",
       "accessible": <true|false>,
       "relevance_tags": ["Supply Chain", "Semiconductor", "..."],
       "affected_profile_entities": ["entity or item name from company_profile"],
@@ -135,9 +145,10 @@ Return a JSON object:
 }
 
 Rules:
+  - url must be copied verbatim from the Google Search result. null is correct if absent.
+    A fabricated URL is always wrong even if the domain looks right.
   - Order articles by publication_date descending (newest first).
   - Minimum 2 articles. If unmet, explain why in coverage_gaps — do not fabricate.
-  - Never fabricate URLs. If unverified, set accessible to false.
   - supply_chain_signal must reference real names from the company_profile.
   - affected_profile_entities must only list names that appear in the company_profile.
 </output_format>
