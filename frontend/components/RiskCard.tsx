@@ -34,10 +34,7 @@ export default function RiskCard({ risk, news = [], graphData = { nodes: [], edg
     risk.title?.trim() ||
     risk.description?.split(".")[0]?.trim() ||
     "Unnamed Risk";
-  const rawDesc = risk.description || "";
-  const displaySynopsis = rawDesc.startsWith(displayTitle)
-    ? rawDesc.slice(displayTitle.length).replace(/^[:\s]+/, "").trim()
-    : rawDesc;
+  const displaySynopsis = risk.description || ""
 
   return (
     <motion.div
