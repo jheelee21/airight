@@ -6,14 +6,15 @@ import models
 
 Base.metadata.create_all(bind=engine)
 
-URL = "airight-api.vercel.app"
+API_URL = "airight-api.vercel.app"
+APP_URL = "airight.vercel.app"
 
 app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", f"https://{URL}", f"http://{URL}"],
+    allow_origins=["http://localhost:3000", f"https://{APP_URL}", f"https://{API_URL}"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
