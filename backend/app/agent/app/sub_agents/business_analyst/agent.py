@@ -2,32 +2,24 @@ from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
 from . import prompt
-from app.tools.bigtable_tools import (
-    create_business,
-    create_entity,
-    create_item,
-    create_route,
-)
+from app.tools.bigtable_tools import create_supply_chain
 
 MODEL = "gemini-3.1-flash-lite-preview"
 
-# Only FunctionTools here — no google_search, so no INVALID_ARGUMENT mixing error.
-# The agent receives free-text company descriptions from the user (via root_agent)
-# and uses these four write tools to persist structured records to the database.
+# Only one FunctionTool now — create_supply_chain writes the entire graph
+# (business + entities + items + routes) in a single atomic DB transaction,
+# reducing the BA agent from ~14 LLM turns to 2 (one reasoning turn + one tool call).
 business_analyst_agent = LlmAgent(
     model=MODEL,
     name="business_analyst_agent",
     description=(
         "Parses free-text descriptions of a manufacturer's business, supply chain "
-        "entities, materials, and logistics routes, then saves them as structured "
-        "records to the database using the create_* tools. Returns the saved IDs "
-        "so downstream agents can reference them."
+        "entities, materials, and logistics routes, then saves them as a complete "
+        "structured graph to the database using create_supply_chain. Returns the "
+        "saved business_id and all assigned IDs so downstream agents can reference them."
     ),
     instruction=prompt.BUSINESS_ANALYSIS_PROMPT,
     tools=[
-        FunctionTool(func=create_business),
-        FunctionTool(func=create_entity),
-        FunctionTool(func=create_item),
-        FunctionTool(func=create_route),
+        FunctionTool(func=create_supply_chain),
     ],
 )

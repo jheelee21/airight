@@ -6,6 +6,15 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Walk up from this file until we find a .env, regardless of CWD
+for _parent in Path(__file__).resolve().parents:
+    if (_parent / ".env").exists():
+        load_dotenv(dotenv_path=_parent / ".env")
+        break
+
 load_dotenv()
 
 # ---------------------------------------------------------------------------
@@ -651,6 +660,286 @@ def create_route(
             "lead_time":          resolved[10],
             "cost":               resolved[11],
         })
+    except Exception as exc:
+        session.rollback()
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
+
+# ---------------------------------------------------------------------------
+# Tool 8 – create_supply_chain  (bulk onboarding)
+# Used by: business_analyst_agent
+# ---------------------------------------------------------------------------
+
+def create_supply_chain(payload: str) -> str:
+    """
+    Insert a complete supply-chain graph in a single atomic transaction.
+
+    Accepts the entire graph as a JSON string so the agent never needs to chain
+    IDs across multiple tool turns.  Routes reference entities and items by their
+    0-based index in the supplied arrays; the function resolves them to real DB IDs.
+
+    Args:
+        payload: A JSON string with the following structure:
+            {
+              "business": {
+                "name":           string  (required),
+                "description":    string  (required),
+                "product_lines":  string | null,
+                "competitors":    string | null,
+                "regional_focus": string | null
+              },
+              "entities": [
+                {
+                  "category":    string,   // supplier | factory | warehouse |
+                                           // distribution_center | port_hub |
+                                           // oem_customer | other
+                  "name":        string,
+                  "description": string,
+                  "location":    string    // "City, Country"
+                }
+              ],
+              "items": [
+                {
+                  "name":        string,
+                  "description": string,
+                  "category":    string    // "raw material" | "component" |
+                                           // "finished product"
+                }
+              ],
+              "routes": [
+                {
+                  "name":                string,
+                  "description":         string,
+                  "start_entity_index":  integer,  // 0-based index into entities
+                  "end_entity_index":    integer,  // 0-based index into entities
+                  "item_index":          integer,  // 0-based index into items
+                  "transportation_mode": string,   // air | sea | road | rail | multimodal
+                  "lead_time":           integer,  // days
+                  "cost":                integer   // USD per shipment (0 if unknown)
+                }
+              ]
+            }
+
+    Returns:
+        JSON string with the full persisted graph including all assigned IDs,
+        or a JSON error object if validation or the transaction fails.
+    """
+    # ── Parse ────────────────────────────────────────────────────────────────
+    try:
+        data = json.loads(payload)
+    except (json.JSONDecodeError, TypeError) as exc:
+        return json.dumps({"error": f"payload is not valid JSON: {exc}"})
+
+    business = data.get("business", {})
+    entities = data.get("entities", [])
+    items    = data.get("items", [])
+    routes   = data.get("routes", [])
+
+    # ── Validate ─────────────────────────────────────────────────────────────
+    if not business.get("name"):
+        return json.dumps({"error": "business.name is required"})
+    if not business.get("description"):
+        return json.dumps({"error": "business.description is required"})
+
+    allowed_entity_categories = {
+        "supplier", "factory", "warehouse",
+        "distribution_center", "port_hub", "oem_customer", "other",
+    }
+    allowed_item_categories = {"raw material", "component", "finished product"}
+    allowed_modes = {"air", "sea", "road", "rail", "multimodal"}
+
+    for i, e in enumerate(entities):
+        if e.get("category") not in allowed_entity_categories:
+            return json.dumps({
+                "error": f"entities[{i}]: invalid category '{e.get('category')}'. "
+                         f"Must be one of: {sorted(allowed_entity_categories)}"
+            })
+        if not e.get("location") or "," not in e["location"]:
+            return json.dumps({
+                "error": f"entities[{i}]: location must be 'City, Country' format, "
+                         f"got: '{e.get('location')}'"
+            })
+
+    for i, it in enumerate(items):
+        if it.get("category") not in allowed_item_categories:
+            return json.dumps({
+                "error": f"items[{i}]: invalid category '{it.get('category')}'. "
+                         f"Must be one of: {sorted(allowed_item_categories)}"
+            })
+
+    for i, r in enumerate(routes):
+        if r.get("transportation_mode") not in allowed_modes:
+            return json.dumps({
+                "error": f"routes[{i}]: invalid transportation_mode "
+                         f"'{r.get('transportation_mode')}'. "
+                         f"Must be one of: {sorted(allowed_modes)}"
+            })
+        for idx_field in ("start_entity_index", "end_entity_index"):
+            idx = r.get(idx_field)
+            if idx is None or not (0 <= idx < len(entities)):
+                return json.dumps({
+                    "error": f"routes[{i}]: {idx_field}={idx} is out of range "
+                             f"(entities has {len(entities)} entries)"
+                })
+        item_idx = r.get("item_index")
+        if item_idx is None or not (0 <= item_idx < len(items)):
+            return json.dumps({
+                "error": f"routes[{i}]: item_index={item_idx} is out of range "
+                         f"(items has {len(items)} entries)"
+            })
+
+    # ── Persist in one transaction ────────────────────────────────────────────
+    session = _get_session()
+    try:
+        # 1. Business
+        biz_row = session.execute(
+            text(
+                """
+                INSERT INTO business (name, description, product_lines, competitors, regional_focus)
+                VALUES (:name, :description, :product_lines, :competitors, :regional_focus)
+                RETURNING id, name, description, product_lines, competitors, regional_focus
+                """
+            ),
+            {
+                "name":           business["name"],
+                "description":    business["description"],
+                "product_lines":  business.get("product_lines"),
+                "competitors":    business.get("competitors"),
+                "regional_focus": business.get("regional_focus"),
+            },
+        ).fetchone()
+        business_id = biz_row[0]
+
+        # 2. Entities
+        entity_ids = []
+        entities_saved = []
+        for e in entities:
+            row = session.execute(
+                text(
+                    """
+                    INSERT INTO entity (business_id, category, name, description, location)
+                    VALUES (:bid, :category, :name, :description, :location)
+                    RETURNING id, category, name, description, location
+                    """
+                ),
+                {
+                    "bid":         business_id,
+                    "category":    e["category"],
+                    "name":        e["name"],
+                    "description": e["description"],
+                    "location":    e["location"],
+                },
+            ).fetchone()
+            entity_ids.append(row[0])
+            entities_saved.append({
+                "id": row[0], "category": row[1],
+                "name": row[2], "description": row[3], "location": row[4],
+            })
+
+        # 3. Items
+        item_ids = []
+        items_saved = []
+        for it in items:
+            row = session.execute(
+                text(
+                    """
+                    INSERT INTO item (business_id, name, description, category)
+                    VALUES (:bid, :name, :description, :category)
+                    RETURNING id, name, description, category
+                    """
+                ),
+                {
+                    "bid":         business_id,
+                    "name":        it["name"],
+                    "description": it["description"],
+                    "category":    it["category"],
+                },
+            ).fetchone()
+            item_ids.append(row[0])
+            items_saved.append({
+                "id": row[0], "name": row[1],
+                "description": row[2], "category": row[3],
+            })
+
+        # 4. Routes — resolve indexes to real DB IDs
+        routes_saved = []
+        for r in routes:
+            start_eid = entity_ids[r["start_entity_index"]]
+            end_eid   = entity_ids[r["end_entity_index"]]
+            item_id   = item_ids[r["item_index"]]
+
+            row = session.execute(
+                text(
+                    """
+                    INSERT INTO route (
+                        business_id, name, description,
+                        start_entity_id, end_entity_id, item_id,
+                        transportation_mode, lead_time, cost
+                    )
+                    VALUES (
+                        :bid, :name, :description,
+                        :start_eid, :end_eid, :iid,
+                        :mode, :lead_time, :cost
+                    )
+                    RETURNING id
+                    """
+                ),
+                {
+                    "bid":         business_id,
+                    "name":        r["name"],
+                    "description": r["description"],
+                    "start_eid":   start_eid,
+                    "end_eid":     end_eid,
+                    "iid":         item_id,
+                    "mode":        r["transportation_mode"],
+                    "lead_time":   r["lead_time"],
+                    "cost":        r["cost"],
+                },
+            ).fetchone()
+            route_id = row[0]
+
+            resolved = session.execute(
+                text(
+                    """
+                    SELECT
+                        r.id, r.name, r.description,
+                        se.name AS start_entity, se.location AS start_location,
+                        ee.name AS end_entity,   ee.location AS end_location,
+                        i.name  AS item_name,    i.category  AS item_category,
+                        r.transportation_mode, r.lead_time, r.cost
+                    FROM route r
+                    JOIN entity se ON se.id = r.start_entity_id
+                    JOIN entity ee ON ee.id = r.end_entity_id
+                    JOIN item   i  ON i.id  = r.item_id
+                    WHERE r.id = :rid
+                    """
+                ),
+                {"rid": route_id},
+            ).fetchone()
+            routes_saved.append({
+                "id": resolved[0], "name": resolved[1], "description": resolved[2],
+                "start_entity": resolved[3], "start_location": resolved[4],
+                "end_entity": resolved[5], "end_location": resolved[6],
+                "item_name": resolved[7], "item_category": resolved[8],
+                "transportation_mode": resolved[9],
+                "lead_time": resolved[10], "cost": resolved[11],
+            })
+
+        session.commit()
+
+        return json.dumps({
+            "business_id": business_id,
+            "business": {
+                "id": biz_row[0], "name": biz_row[1], "description": biz_row[2],
+                "product_lines": biz_row[3], "competitors": biz_row[4],
+                "regional_focus": biz_row[5],
+            },
+            "entities_saved": entities_saved,
+            "items_saved":    items_saved,
+            "routes_saved":   routes_saved,
+        })
+
     except Exception as exc:
         session.rollback()
         return json.dumps({"error": str(exc)})
