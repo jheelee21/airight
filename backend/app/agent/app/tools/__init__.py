@@ -7,6 +7,7 @@ from .bigtable_tools import (
     create_supply_chain,
     create_risks,
     create_action_items,
+    create_news,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "create_supply_chain",
     "create_risks",
     "create_action_items",
+    "create_news",
 ]

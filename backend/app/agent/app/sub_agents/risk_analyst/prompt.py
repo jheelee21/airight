@@ -25,36 +25,55 @@ or sub-component markets. If a risk cannot be validated by tool output, label it
 Step 1 — EXTRACT:   What is the core event? (e.g., "Typhoon hit TSMC fab in Tainan")
 Step 2 — CONNECT:   Does this affect any supplier, component, region, or route in the profile?
 Step 3 — PROPAGATE: How does disruption ripple up the chain? Which product lines are at risk?
-Step 4 — QUANTIFY:  Estimate severity and likelihood on a 0.0–1.0 scale (see scoring guide).
+Step 4 — QUANTIFY:  Estimate severity and likelihood as floats on a 0.0–1.0 scale (see scoring guide).
 Step 5 — MITIGATE:  List 3–5 concrete actions (used downstream, not persisted here).
 Step 6 — PERSIST:   Have you found at least 3 risks? If not, search for additional angles.
 </reasoning_steps>
 
 <scoring_guide>
-Both severity and likelihood use a continuous 0.0–1.0 float scale:
+Both severity and likelihood use a continuous 0.0–1.0 float scale.
 
-  severity   — magnitude of business impact if the risk materialises
-    0.0–0.2  Negligible  Minor delay or cost variance, easily absorbed
-    0.2–0.4  Low         Single product line affected, recoverable in days
-    0.4–0.6  Moderate    Multi-line or regional disruption, weeks to recover
-    0.6–0.8  High        Major revenue impact, months to recover
-    0.8–1.0  Critical    Existential threat to a product segment or the business
+DISTRIBUTION RULE: Scores must be normally distributed across the dataset.
+  - Most risks should score between 0.30 and 0.70.
+  - Scores above 0.80 are reserved for confirmed, active, severe disruptions only.
+  - Scores below 0.15 indicate the risk is barely worth logging — omit instead.
+  - Avoid clustering all scores near 1.0 or all near 0.5. Differentiate based on evidence.
+
+  severity — magnitude of business impact if the risk materialises
+    0.10–0.25  Negligible  Minor delay or cost variance, easily absorbed
+    0.25–0.45  Low         Single product line affected, recoverable in days
+    0.45–0.60  Moderate    Multi-line or regional disruption, weeks to recover
+    0.60–0.80  High        Major revenue impact, months to recover
+    0.80–1.00  Critical    Existential threat to a product segment or the business
 
   likelihood — probability the risk event occurs within the planning horizon
-    0.0–0.2  Rare        No credible trigger observed
-    0.2–0.4  Unlikely    Weak signals only
-    0.4–0.6  Possible    Credible intelligence or historical precedent
-    0.6–0.8  Likely      Active trigger; disruption already starting
-    0.8–1.0  Near-certain Event confirmed or imminent
+    0.10–0.25  Rare         No credible trigger observed
+    0.25–0.45  Unlikely     Weak signals only
+    0.45–0.60  Possible     Credible intelligence or historical precedent
+    0.60–0.80  Likely       Active trigger; disruption already starting
+    0.80–1.00  Near-certain Event confirmed or imminent
+
+  CALIBRATION EXAMPLES (use as anchors):
+    severity 0.20 — A single logistics delay adding 3 days to lead time
+    severity 0.40 — Supplier price increase affecting one product line by 8%
+    severity 0.55 — Port strike disrupting 30% of inbound components for 2 weeks
+    severity 0.70 — Key sole-source fab goes offline for 6–8 weeks
+    severity 0.90 — Primary chip supplier exits market entirely
+
+    likelihood 0.20 — Background geopolitical tension with no active trigger
+    likelihood 0.40 — Seasonal weather risk with historical precedent every 3–4 years
+    likelihood 0.55 — Supplier financial stress flagged in last earnings call
+    likelihood 0.70 — Strike vote passed; walkout expected within weeks
+    likelihood 0.90 — Typhoon already making landfall near supplier facility
 
   risk_score = severity × likelihood  (range 0.0–1.0, round to 4 dp)
 </scoring_guide>
 
 <urgency_mapping>
 Use risk_score to set urgency in the mitigation_roadmap:
-  risk_score >= 0.60  → IMMEDIATE   (action within 72 hours)
-  risk_score 0.30–0.59 → SHORT_TERM  (action within 2 weeks)
-  risk_score < 0.30   → LONG_TERM   (action within 90 days)
+  risk_score >= 0.40  → IMMEDIATE   (action within 72 hours)
+  risk_score 0.20–0.39 → SHORT_TERM  (action within 2 weeks)
+  risk_score < 0.20   → LONG_TERM   (action within 90 days)
 </urgency_mapping>
 
 <kpi_reference>
@@ -75,9 +94,9 @@ Return a JSON array. Each object must follow this exact schema:
   "title": "Short, specific title (e.g., 'TSMC Tainan Fab Outage Threatens Image Sensor Supply')",
   "description": "2–3 sentences. What happened, why it matters, what breaks if unaddressed.",
   "category": "Supply Chain | Regulatory | Geopolitical | Financial | Operational | Climate",
-  "severity":   <float 0.0–1.0>,   ← magnitude of impact if risk materialises
-  "likelihood": <float 0.0–1.0>,   ← probability of occurrence
-  "risk_score": <severity × likelihood, rounded to 4 dp>,
+  "severity":   <float 0.0–1.0>,   <- use the calibration examples above to anchor your estimate
+  "likelihood": <float 0.0–1.0>,   <- use the calibration examples above to anchor your estimate
+  "risk_score": <severity x likelihood, rounded to 4 dp>,
   "target_type": "entity | route",
   "target_name": "<exact entity or route name from the company profile>",
   "affected_entities": {
@@ -98,6 +117,9 @@ Return a JSON array. Each object must follow this exact schema:
 }
 
 Rules:
+- severity and likelihood must be floats between 0.0 and 1.0 inclusive.
+- Scores must spread across the full range — do NOT assign 0.8+ to every risk.
+  Reserve high scores for the most severe, evidence-backed threats.
 - risk_id values ("R-001" etc.) are TEMPORARY labels for this response only.
   The orchestrator will replace them with real integer DB IDs after persisting.
 - Minimum 3 risk objects. Search for more if needed.

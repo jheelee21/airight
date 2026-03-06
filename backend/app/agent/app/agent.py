@@ -14,6 +14,7 @@ from app.agent.app.tools.bigtable_tools import (
     get_existing_risks,
     get_risks_with_actions,
     create_risks,
+    create_news,
 )
 from . import prompt
 
@@ -25,17 +26,6 @@ class ThrottledAgentTool(AgentTool):
     """
     AgentTool subclass that sleeps for `pause_seconds` before delegating
     to the wrapped sub-agent.
-
-    This inserts a mandatory pause at the ADK framework level — between the
-    moment root_agent finishes one sub-agent call and the moment the next
-    one starts — so that the cumulative request rate stays under the
-    15 RPM limit imposed by gemini-3.1-flash-lite-preview.
-
-    Why here and not in the prompt:
-        Prompt-level "wait" instructions are ignored by the model.
-        ADK's internal event loop calls tool.run_async() synchronously
-        from root_agent's perspective, so sleeping here blocks the entire
-        pipeline turn — exactly what we want.
     """
 
     def __init__(self, agent, pause_seconds: float = 60.0):
@@ -61,8 +51,9 @@ root_agent = LlmAgent(
         FunctionTool(func=get_business_profile),
         FunctionTool(func=get_risks_with_actions),
         FunctionTool(func=create_risks),
+        FunctionTool(func=create_news),      # ← ADDED: persist scraped articles
 
-        # ── Sub-agent delegation — each pauses 60 s before firing ──────────
+        # ── Sub-agent delegation ─────────────────────────────────────────────
         ThrottledAgentTool(agent=news_scraper_agent,         pause_seconds=0),
         ThrottledAgentTool(agent=business_analyst_agent,     pause_seconds=0),
         ThrottledAgentTool(agent=risk_analyst_agent,         pause_seconds=0),
