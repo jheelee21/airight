@@ -6,7 +6,7 @@ from .sub_agents.news_scraper.agent import news_scraper_agent
 from .sub_agents.business_analyst.agent import business_analyst_agent
 from .sub_agents.risk_analyst.agent import risk_analyst_agent
 from .sub_agents.action_item_creator.agent import action_item_creator_agent
-from app.tools.bigtable_tools import (
+from app.agent.app.tools.bigtable_tools import (
     get_business_profile,
     get_existing_risks,
     get_risks_with_actions,
