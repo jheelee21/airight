@@ -95,7 +95,28 @@ async def run_agent_flow(payload: AgentFlowRequest):
     if final_response:
         try:
             data = json.loads(final_response)
-            biz_id = data.get("business_id")
+            biz_id = None
+
+            # Search all events for a JSON block containing business_id
+            for text in reversed(events):  # most recent first
+                try:
+                    # Handle fenced JSON blocks or raw JSON
+                    clean = text.strip().removeprefix("```json").removesuffix("```").strip()
+                    data = json.loads(clean)
+                    if isinstance(data, dict) and data.get("business_id"):
+                        biz_id = int(data["business_id"])
+                        break
+                except Exception:
+                    continue
+
+            # Fallback: regex scrape any `"business_id": 123` pattern
+            if biz_id is None:
+                import re
+                for text in reversed(events):
+                    match = re.search(r'"business_id"\s*:\s*(\d+)', text)
+                    if match:
+                        biz_id = int(match.group(1))
+                        break
         except Exception:
             pass
 

@@ -117,14 +117,16 @@ STEP 4.5 — PERSIST RISKS  ← CRITICAL: must happen before Step 5
   ⚠️  Never pass new_risks_raw directly to action_item_creator_agent.
       Always use saved_risks (which contains real integer risk_ids) instead.
 
-STEP 5 — ACTION ITEM CREATION
-  Delegate to: action_item_creator_agent
-  Pass:
-    - saved_risks from Step 4.5  ← use this, NOT new_risks_raw
-    - risks_with_actions from Step 2 (for gap-filling)
-  The agent will generate action items and persist them via create_action_items.
-  Receive: confirmation summary (e.g. "Saved N action items across M risks.").
-  Store as: action_plan_summary
+STEP 5 — EMIT FINAL SUMMARY
+  After all steps are complete, output ONLY a JSON object as your final message:
+  {
+    "business_id": <integer>,
+    "risks_created": <integer>,
+    "news_saved": <integer>,
+    "actions_created": <integer>,
+    "status": "complete"
+  }
+  Do not add any prose before or after this JSON block.
 </pipeline>
 
 <o>
