@@ -174,6 +174,7 @@ export default function DashboardPage() {
                     key={item.id}
                     title={item.title} 
                     summary={item.content} 
+                    url={item.url}
                     time={new Date(item.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   />
                 ))
@@ -199,16 +200,26 @@ export default function DashboardPage() {
   );
 }
 
-function NewsCard({ title, summary, time }: { title: string, summary: string, time: string }) {
-  return (
-    <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors bg-white dark:bg-zinc-950">
+function NewsCard({ title, summary, time, url }: { title: string, summary: string, time: string, url?: string }) {
+  const content = (
+    <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all bg-white dark:bg-zinc-950 group">
       <div className="flex justify-between items-start mb-1">
-        <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{title}</h4>
+        <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 group-hover:text-blue-600 transition-colors">{title}</h4>
         <span className="text-[10px] text-zinc-400 font-medium">{time}</span>
       </div>
       <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2">{summary}</p>
     </div>
   );
+
+  if (url) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block outline-none">
+        {content}
+      </a>
+    );
+  }
+
+  return content;
 }
 
 function StatCard({ icon, label, value, description, tooltip }: { icon: React.ReactNode, label: string, value: string, description?: string, tooltip?: string }) {
