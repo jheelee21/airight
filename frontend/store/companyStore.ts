@@ -25,7 +25,7 @@ export const useCompanyStore = create<CompanyState>()(
       setBusinessId: (id) => set({ businessId: id }),
       setContext: (context) => set({ context }),
       updateContext: async (businessId, context) => {
-        const response = await fetch(`http://localhost:8000/api/business/${businessId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/business/${businessId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

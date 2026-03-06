@@ -32,54 +32,67 @@ const EntityNode = ({ data }: { data: any }) => {
     supplier: <Truck className="w-5 h-5" />
   };
 
-  const nodeStyles: Record<string, { badge: string, iconCont: string, categoryText: string }> = {
+  const nodeStyles: Record<string, { badge: string, iconCont: string, categoryText: string, border: string, bg: string }> = {
     factory: { 
-      badge: "bg-emerald-500", 
-      iconCont: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400",
-      categoryText: "text-emerald-500"
+      badge: "bg-amber-500", 
+      iconCont: "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400",
+      categoryText: "text-amber-500",
+      border: "border-amber-400",
+      bg: "bg-white dark:bg-zinc-950"
     },
     inventory: { 
       badge: "bg-amber-500", 
-      iconCont: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400",
-      categoryText: "text-amber-500"
+      iconCont: "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400",
+      categoryText: "text-amber-500",
+      border: "border-amber-400",
+      bg: "bg-white dark:bg-zinc-950"
     },
     oem: { 
-      badge: "bg-pink-500", 
-      iconCont: "bg-zinc-800 border-pink-500/50 text-pink-500",
-      categoryText: "text-pink-400"
+      badge: "bg-zinc-900 dark:bg-white", 
+      iconCont: "bg-zinc-900 border-zinc-700 text-white",
+      categoryText: "text-zinc-400",
+      border: "border-zinc-900 dark:border-zinc-100",
+      bg: "bg-zinc-900 text-white"
     },
     supplier: { 
-      badge: "bg-blue-500", 
+      badge: "bg-zinc-500", 
       iconCont: "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500",
-      categoryText: "text-zinc-400"
+      categoryText: "text-zinc-400",
+      border: "border-zinc-300 dark:border-zinc-700",
+      bg: "bg-zinc-50 dark:bg-zinc-900"
     }
   };
 
-  const style = nodeStyles[category] || nodeStyles.supplier;
+  const nodeStyle = nodeStyles[category] || nodeStyles.supplier;
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center p-3 rounded-2xl border-4 transition-all duration-500 min-h-[120px] relative",
-      isInternal ? "shadow-[0_20px_50px_rgba(16,185,129,0.1)] dark:shadow-[0_20px_50px_rgba(16,185,129,0.05)]" : "",
+      "flex flex-col items-center justify-center p-3 rounded-2xl border-4 transition-all duration-500 min-h-[120px] relative w-full h-full bg-white dark:bg-zinc-950",
+      nodeStyle.border,
+      isInternal ? "shadow-xl ring-2 ring-emerald-500/10" : "",
       data.hasRisk ? "ring-4 ring-offset-4 ring-red-500/50" : ""
     )}
-    style={data.style}
     >
-      <Handle type="target" position={Position.Left} className="!bg-zinc-400 !w-2 !h-2 border-none" />
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        style={{ left: '50%', transform: 'translateX(-50%)' }}
+        className="!bg-zinc-400 !w-3 !h-3 border-2 border-white dark:border-zinc-950" 
+      />
       
       {/* Unity Badge for Internal Entities */}
       {isInternal && (
-        <div className={cn("absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest shadow-lg whitespace-nowrap z-10", style.badge)}>
+        <div className={cn("absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-widest shadow-lg whitespace-nowrap z-10", nodeStyle.badge)}>
           Business Asset
         </div>
       )}
 
-      <div className={cn("mb-2 p-3 rounded-xl border transition-colors", style.iconCont)}>
+      <div className={cn("mb-2 p-3 rounded-xl border transition-colors", nodeStyle.iconCont)}>
         {icons[category] || <HardHat className="w-5 h-5" />}
       </div>
       
       <div className="text-center">
-        <div className={cn("text-[9px] font-black uppercase tracking-tighter mb-0.5", style.categoryText)}>
+        <div className={cn("text-[9px] font-black uppercase tracking-tighter mb-0.5", nodeStyle.categoryText)}>
           {category}
         </div>
         <div className={cn(
@@ -90,7 +103,12 @@ const EntityNode = ({ data }: { data: any }) => {
         </div>
       </div>
       
-      <Handle type="source" position={Position.Right} className="!bg-zinc-400 !w-2 !h-2 border-none" />
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        style={{ left: '50%', transform: 'translateX(-50%)' }}
+        className="!bg-zinc-400 !w-3 !h-3 border-2 border-white dark:border-zinc-950" 
+      />
     </div>
   );
 };
@@ -103,41 +121,37 @@ const initialNodes: Node[] = [
   { 
     id: '1', 
     type: 'entity',
-    position: { x: 0, y: 100 }, 
+    position: { x: 300, y: 0 }, 
     data: { 
       label: 'Primary Supplier (Lithium)', 
       category: 'supplier',
-      style: { background: '#eff6ff', border: '3px solid #3b82f6', borderRadius: '24px', width: 160 }
     }
   },
   { 
     id: '2', 
     type: 'entity',
-    position: { x: 400, y: 0 }, 
+    position: { x: 0, y: 300 }, 
     data: { 
       label: 'Battery Assembly Plant', 
       category: 'factory',
-      style: { background: '#fff', border: '3px solid #10b981', borderRadius: '24px', width: 200 }
     }
   },
   { 
     id: '3', 
     type: 'entity',
-    position: { x: 400, y: 200 }, 
+    position: { x: 600, y: 300 }, 
     data: { 
       label: 'Casing Manufacturer', 
       category: 'factory',
-      style: { background: '#fff', border: '3px solid #10b981', borderRadius: '24px', width: 200 }
     }
   },
   { 
     id: '4', 
     type: 'entity',
-    position: { x: 800, y: 100 }, 
+    position: { x: 300, y: 600 }, 
     data: { 
       label: 'Final Assembly (OEM)', 
       category: 'oem',
-      style: { background: '#09090b', color: '#fff', border: '3px solid #ec4899', borderRadius: '24px', width: 240 }
     }
   },
 ];
@@ -195,56 +209,72 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
     if (businessId) {
       // Fetch both graph and risks to perform filtering
       Promise.all([
-        fetch(`http://localhost:8000/api/business/${businessId}/graph`).then(res => res.json()),
-        fetch(`http://localhost:8000/api/business/${businessId}/risks`).then(res => res.json())
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/business/${businessId}/graph`).then(res => res.json()),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/business/${businessId}/risks`).then(res => res.json())
       ])
         .then(([graphData, riskData]) => {
           if (graphData.nodes && graphData.nodes.length > 0) {
             // Layout constants
-            const tierX: Record<string, number> = {
+            const tierY: Record<string, number> = {
               'supplier': 0,
-              'inventory': 400,
-              'factory': 400,
-              'oem': 800
+              'inventory': 300,
+              'factory': 300,
+              'oem': 600
             };
 
             const categoryColors: Record<string, string> = {
-              'supplier': '#3b82f6', // blue
+              'supplier': '#94a3b8', // gray/slate
               'inventory': '#f59e0b', // amber
-              'factory': '#10b981',  // emerald
-              'oem': '#ec4899'       // pink
+              'factory': '#f59e0b',  // amber
+              'oem': '#09090b'       // black
             };
 
-            // Track how many nodes in each x-position for Y-offset
-            const xCounts: Record<number, number> = {};
+            // Track how many nodes in each y-position for X-offset
+            const yCounts: Record<number, number> = {};
 
             // Filtering logic for edges:
             // 1. Edges with risks (entity or route)
             // 2. Edges leading to OEM
-            const riskyEntityIds = new Set(riskData.filter((r: any) => r.target_type === 'entity').map((r: any) => r.target_id.toString()));
-            const riskyRouteIds = new Set(riskData.filter((r: any) => r.target_type === 'route').map((r: any) => r.target_id.toString()));
-            const oemNodeIds = new Set(graphData.nodes.filter((n: any) => n.category === 'oem').map((n: any) => n.id.toString()));
-
-            const filteredEdges = graphData.edges
-              .filter((e: any) => {
-                const isToOEM = oemNodeIds.has(e.end_entity_id.toString());
-                const isFromOEM = oemNodeIds.has(e.start_entity_id.toString());
-                const hasRouteRisk = riskyRouteIds.has(e.id.toString());
-                const hasEntityRisk = riskyEntityIds.has(e.start_entity_id.toString()) || riskyEntityIds.has(e.end_entity_id.toString());
-                
-                return isToOEM || isFromOEM || hasRouteRisk || hasEntityRisk;
-              });
-
-            // IDs of nodes that have at least one edge after filtering
-            const connectedNodeIds = new Set();
-            filteredEdges.forEach((e: any) => {
-              connectedNodeIds.add(e.start_entity_id.toString());
-              connectedNodeIds.add(e.end_entity_id.toString());
+            // Reachability analysis to OEM
+            const oemNodes = graphData.nodes.filter((n: any) => n.category === 'oem');
+            const oemNodeIds = new Set<string>(oemNodes.map((n: any) => n.id.toString()));
+            
+            // Build reverse adjacency list
+            const revAdj: Record<string, string[]> = {};
+            graphData.edges.forEach((e: any) => {
+              const target = e.end_entity_id.toString();
+              const source = e.start_entity_id.toString();
+              if (!revAdj[target]) revAdj[target] = [];
+              revAdj[target].push(source);
             });
 
-            // Nodes that are associated with a risk (directly or via a risky edge)
+            // BFS from OEM nodes backwards
+            const reachableToOEM = new Set<string>(oemNodeIds);
+            const queue: string[] = Array.from(oemNodeIds);
+            while (queue.length > 0) {
+              const curr: string = queue.shift()!;
+              const sources = revAdj[curr] || [];
+              sources.forEach((src: string) => {
+                if (!reachableToOEM.has(src)) {
+                  reachableToOEM.add(src);
+                  queue.push(src);
+                }
+              });
+            }
+
+            // Filter edges and nodes
+            const reachableEdges = graphData.edges.filter((e: any) => 
+              reachableToOEM.has(e.start_entity_id.toString()) && 
+              reachableToOEM.has(e.end_entity_id.toString())
+            );
+
+            // Risky IDs (for highlighting)
+            const riskyEntityIds = new Set(riskData.filter((r: any) => r.target_type === 'entity').map((r: any) => r.target_id.toString()));
+            const riskyRouteIds = new Set(riskData.filter((r: any) => r.target_type === 'route').map((r: any) => r.target_id.toString()));
+
+            // Nodes associated with risks in the reachable set
             const associatedRiskyNodeIds = new Set(riskyEntityIds);
-            filteredEdges.forEach((e: any) => {
+            reachableEdges.forEach((e: any) => {
               if (riskyRouteIds.has(e.id.toString())) {
                 associatedRiskyNodeIds.add(e.start_entity_id.toString());
                 associatedRiskyNodeIds.add(e.end_entity_id.toString());
@@ -252,17 +282,16 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
             });
 
             const apiNodes = graphData.nodes
-              .filter((n: any) => connectedNodeIds.has(n.id.toString()))
+              .filter((n: any) => reachableToOEM.has(n.id.toString()))
               .map((n: any) => {
                 const category = n.category || 'supplier';
-                const x = tierX[category] ?? 0;
+                const y = tierY[category] ?? 0;
                 
-                if (xCounts[x] === undefined) xCounts[x] = 0;
-                const y = xCounts[x] * 160;
-                xCounts[x]++;
+                if (yCounts[y] === undefined) yCounts[y] = 0;
+                const x = yCounts[y] * 300;
+                yCounts[y]++;
 
                 const isInternal = category === 'factory' || category === 'inventory';
-                const isOEM = category === 'oem';
                 const hasRisk = associatedRiskyNodeIds.has(n.id.toString());
 
                 return {
@@ -273,21 +302,13 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                     label: n.name, 
                     category: category,
                     hasRisk: hasRisk,
-                    style: {
-                      background: isOEM ? '#09090b' : (isInternal ? '#fff' : '#eff6ff'), 
-                      color: isOEM ? '#fff' : '#09090b',
-                      border: `3px solid ${categoryColors[category] || '#e2e8f0'}`, 
-                      borderRadius: '24px', 
-                      width: isOEM ? 240 : (isInternal ? 200 : 160),
-                      opacity: hasRisk ? 1 : 0.6,
-                      filter: hasRisk ? 'none' : 'grayscale(0.3)',
-                    }
                   }
                 };
               });
 
-            const apiEdges = filteredEdges.map((e: any) => {
+            const apiEdges = reachableEdges.map((e: any) => {
               const hasRisk = riskyRouteIds.has(e.id.toString());
+              const color = hasRisk ? '#ef4444' : '#d4d4d8'; // zinc-300 for better visibility in light mode
               return {
                 id: `e${e.id}`,
                 source: e.start_entity_id.toString(),
@@ -295,12 +316,12 @@ export default function DependencyGraph({ businessId }: DependencyGraphProps) {
                 label: e.name,
                 animated: true,
                 style: { 
-                  stroke: hasRisk ? '#ef4444' : 'whitesmoke', 
+                  stroke: color, 
                   strokeWidth: hasRisk ? 4 : 2,
                   opacity: 1 
                 },
-                markerEnd: { type: MarkerType.ArrowClosed, color: hasRisk ? '#ef4444' : 'whitesmoke' },
-                labelStyle: { fontSize: '10px', fill: hasRisk ? '#b91c1c' : '#64748b', fontWeight: '700', opacity: hasRisk ? 1 : 0.5 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: color },
+                labelStyle: { fontSize: '10px', fill: hasRisk ? '#ef4444' : '#71717a', fontWeight: '700', opacity: hasRisk ? 1 : 0.8 },
                 labelBgStyle: { fill: '#fff', fillOpacity: 0.9 },
                 labelBgPadding: [6, 4],
                 labelBgBorderRadius: 4,

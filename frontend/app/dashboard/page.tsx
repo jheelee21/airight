@@ -17,7 +17,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (user?.business_id && !context) {
-      fetch(`http://localhost:8000/api/business/${user.business_id}`)
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/business/${user.business_id}`)
         .then(res => res.json())
         .then(data => {
           if (data.name) {
@@ -39,7 +39,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user?.business_id) {
       // Fetch risks
-      fetch(`http://localhost:8000/api/business/${user.business_id}/risks`)
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/business/${user.business_id}/risks`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -52,7 +52,7 @@ export default function DashboardPage() {
         .catch(err => console.error("Failed to fetch risks:", err));
 
       // Fetch news
-      fetch(`http://localhost:8000/api/business/${user.business_id}/news`)
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/business/${user.business_id}/news`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
