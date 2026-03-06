@@ -5,7 +5,7 @@ import { ExternalLink, AlertTriangle, ShieldCheck, ArrowRight, Info } from "luci
 import { RiskIntelligence, MitigationStep } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useCompanyStore } from "@/store/companyStore";
 
@@ -90,7 +90,7 @@ export default function RiskCard({ risk }: { risk: any }) {
 
 function MitigationItem({ step }: { step: MitigationStep }) {
   const [status, setStatus] = useState(step.status);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const isUpdatingRef = useRef(false);
   const triggerRisksRefresh = useCompanyStore((state: any) => state.triggerRisksRefresh);
 
   const getStatusConfig = (currentStatus: string) => {
@@ -117,18 +117,21 @@ function MitigationItem({ step }: { step: MitigationStep }) {
   };
 
   const handleToggle = async () => {
-    if (isUpdating) return;
+    if (isUpdatingRef.current) return;
+    isUpdatingRef.current = true;
     
+    // Capture current status before optimistic update for rollback
+    const previousStatus = status;
+
     // Cycle: Planned -> In Progress -> Complete -> Planned
-    const s = status.toLowerCase();
+    const s = previousStatus.toLowerCase();
     let nextStatus: string = "Planned";
     if (s === "planned") nextStatus = "In Progress";
     else if (s === "doing" || s === "in progress") nextStatus = "Complete";
-    else nextStatus = "Planned";
+    else if (s === "complete" || s === "resolved") nextStatus = "Planned";
 
     // Optimistic update
     setStatus(nextStatus as MitigationStep["status"]);
-    setIsUpdating(true);
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/action/${step.id}`, {
@@ -145,11 +148,11 @@ function MitigationItem({ step }: { step: MitigationStep }) {
       triggerRisksRefresh();
     } catch (error) {
       console.error("Status update failed:", error);
-      // Revert on error
-      setStatus(status);
+      // Revert to captured previous status (not stale closure)
+      setStatus(previousStatus);
       alert("Failed to sync status with server.");
     } finally {
-      setIsUpdating(false);
+      isUpdatingRef.current = false;
     }
   };
 
@@ -159,7 +162,7 @@ function MitigationItem({ step }: { step: MitigationStep }) {
     <div 
       className={cn(
         "flex flex-col gap-1.5 group cursor-pointer p-2 -m-2 rounded-xl border border-transparent hover:border-zinc-100 dark:hover:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-all",
-        isUpdating && "opacity-60 grayscale cursor-wait"
+        isUpdatingRef.current && "opacity-60 grayscale cursor-wait"
       )}
       onClick={handleToggle}
     >

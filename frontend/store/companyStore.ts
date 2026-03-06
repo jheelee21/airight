@@ -11,7 +11,6 @@ interface CompanyState {
   businessId: number | null;
   setBusinessId: (id: number) => void;
   setContext: (context: CompanyContext) => void;
-  updateContext: (businessId: number, context: CompanyContext) => Promise<void>;
   clearContext: () => void;
   risksVersion: number;
   triggerRisksRefresh: () => void;
@@ -27,19 +26,6 @@ export const useCompanyStore = create<CompanyState>()(
       isRefreshing: false,
       setBusinessId: (id) => set({ businessId: id }),
       setContext: (context) => set({ context }),
-      updateContext: async (businessId, context) => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/business/${businessId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: context.name,
-            description: context.description,
-          }),
-        });
-        if (response.ok) {
-          set({ context, businessId });
-        }
-      },
       refreshIntelligence: async (businessId) => {
         set({ isRefreshing: true });
         try {

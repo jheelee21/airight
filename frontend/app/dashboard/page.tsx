@@ -2,12 +2,12 @@
 
 import { useCompanyStore } from "@/store/companyStore";
 import { useAuthStore } from "@/store/authStore";
-import OnboardingForm from "@/components/OnboardingForm";
+
 import RiskCard from "@/components/RiskCard";
 import DependencyGraph from "@/components/DependencyGraph";
-import { MOCK_RISKS } from "@/lib/mockData";
+
 import { AlertCircle, TrendingUp, ShieldAlert, Globe, Filter, Search, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function DashboardPage() {
   const { context, setContext, refreshIntelligence, isRefreshing } = useCompanyStore();
@@ -69,27 +69,30 @@ export default function DashboardPage() {
     );
   }
 
-  // Show onboarding if business information is not populated or is placeholder
-  const isProfileComplete = context && context.name && context.name !== "Pending Setup" && context.description;
 
-  if (!isProfileComplete) {
-    return (
-      <div className="p-8">
-        <div className="max-w-xl mx-auto text-center mb-12">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">
-            Intelligence Configuration
-          </h1>
-          <p className="text-zinc-500">
-            Define your company profile to activate the autonomous risk scanning agents.
-          </p>
-        </div>
-        <OnboardingForm />
-      </div>
-    );
-  }
 
   const criticalCount = risks.filter((r: any) => (r.severity * r.probability) >= 0.25).length;
   const mediumCount = risks.filter((r: any) => (r.severity * r.probability) >= 0.1 && (r.severity * r.probability) < 0.25).length;
+
+  // Compute Overload Rate: % of actions that are NOT complete
+  const overloadRate = useMemo(() => {
+    const allActions = risks.flatMap((r: any) => r.actions || []);
+    if (allActions.length === 0) return 0;
+    const incompleteCount = allActions.filter(
+      (a: any) => a.implementation_status?.toLowerCase() !== "complete" && a.implementation_status?.toLowerCase() !== "resolved"
+    ).length;
+    return Math.round((incompleteCount / allActions.length) * 100);
+  }, [risks]);
+
+  // Compute Supply Chain Health from average risk score
+  const supplyChainHealth = useMemo(() => {
+    if (risks.length === 0) return { label: "No Data", color: "text-zinc-400" };
+    const avgRisk = risks.reduce((sum: number, r: any) => sum + (r.severity * r.probability), 0) / risks.length;
+    if (avgRisk < 0.10) return { label: "Excellent", color: "text-emerald-500" };
+    if (avgRisk < 0.20) return { label: "Stable", color: "text-emerald-500" };
+    if (avgRisk < 0.35) return { label: "At Risk", color: "text-amber-500" };
+    return { label: "Critical", color: "text-red-500" };
+  }, [risks]);
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -100,7 +103,7 @@ export default function DashboardPage() {
             Risk Intelligence Feed
           </h1>
           <p className="text-zinc-500 text-sm">
-            Monitoring risks for <span className="font-medium text-zinc-900 dark:text-zinc-100">{context.name}</span>
+            Monitoring risks for <span className="font-medium text-zinc-900 dark:text-zinc-100">{context?.name || "your business"}</span>
           </p>
         </div>
         
@@ -145,16 +148,16 @@ export default function DashboardPage() {
           tooltip="Moderate risks monitored by operational teams for mitigation."
         />
         <StatCard 
-          icon={<Zap className="text-amber-500" />} 
+          icon={<Zap className={overloadRate >= 70 ? "text-red-500" : overloadRate >= 40 ? "text-amber-500" : "text-emerald-500"} />} 
           label="Overload Rate" 
-          value="84%" 
-          tooltip="Current utilization of the most constrained facility in the supply chain."
+          value={`${overloadRate}%`} 
+          tooltip="Percentage of unresolved mitigation actions across all risks."
         />
         <StatCard 
-          icon={<Globe className="text-emerald-500" />} 
+          icon={<Globe className={supplyChainHealth.color} />} 
           label="Supply Chain Health" 
-          value="Stable" 
-          tooltip="Aggregate score of all active routes and entity stability."
+          value={supplyChainHealth.label} 
+          tooltip="Aggregate health derived from average risk severity across the supply chain."
         />
       </div>
 
