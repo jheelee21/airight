@@ -2,10 +2,10 @@ from google.adk.agents.llm_agent import LlmAgent
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools import FunctionTool
 
-from .sub_agenets.news_scraper.agent import news_scraper_agent
-from .sub_agenets.business_analyst.agent import business_analyst_agent
-from .sub_agenets.risk_analyst.agent import risk_analyst_agent
-from .sub_agenets.action_item_creator.agent import action_item_creator_agent
+from .sub_agents.news_scraper.agent import news_scraper_agent
+from .sub_agents.business_analyst.agent import business_analyst_agent
+from .sub_agents.risk_analyst.agent import risk_analyst_agent
+from .sub_agents.action_item_creator.agent import action_item_creator_agent
 from app.tools.bigtable_tools import (
     get_business_profile,
     get_existing_risks,
@@ -13,7 +13,7 @@ from app.tools.bigtable_tools import (
 )
 from . import prompt
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.1-flash-lite-preview"
 
 # Architecture note
 # -----------------

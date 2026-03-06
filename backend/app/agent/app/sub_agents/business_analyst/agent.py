@@ -9,7 +9,7 @@ from app.tools.bigtable_tools import (
     create_route,
 )
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.1-flash-lite-preview"
 
 # Only FunctionTools here — no google_search, so no INVALID_ARGUMENT mixing error.
 # The agent receives free-text company descriptions from the user (via root_agent)

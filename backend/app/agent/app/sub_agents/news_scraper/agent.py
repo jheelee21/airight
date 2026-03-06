@@ -3,7 +3,7 @@ from google.adk.tools import google_search
 
 from . import prompt
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.1-flash-lite-preview"
 
 # NOTE: google_search is a built-in tool and CANNOT be combined with FunctionTools
 # (custom tools) in the same agent — Gemini raises INVALID_ARGUMENT if mixed.
