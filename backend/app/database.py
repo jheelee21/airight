@@ -7,10 +7,10 @@ import os
 load_dotenv()
 
 # Fetch variables (consider renaming to uppercase in .env later)
-USER = os.getenv("user")
-PASSWORD = os.getenv("password")
-HOST = os.getenv("host")
-PORT = os.getenv("port")
+USER = os.getenv("dbuser")
+PASSWORD = os.getenv("dbpassword")
+HOST = os.getenv("dbhost")
+PORT = os.getenv("dbport")
 DBNAME = os.getenv("dbname")
 
 # Construct the SQLAlchemy connection string

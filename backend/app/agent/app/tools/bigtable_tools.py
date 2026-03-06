@@ -16,10 +16,10 @@ load_dotenv()
 _DATABASE_URL = (
     "postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?sslmode=require"
 ).format(
-    user=os.getenv("user", ""),
-    password=os.getenv("password", ""),
-    host=os.getenv("host", ""),
-    port=os.getenv("port", "5432"),
+    user=os.getenv("dbuser", ""),
+    password=os.getenv("dbpassword", ""),
+    host=os.getenv("dbhost", ""),
+    port=os.getenv("dbport", "5432"),
     dbname=os.getenv("dbname", ""),
 )
 
@@ -35,7 +35,6 @@ def _get_session():
 # Helper
 # ---------------------------------------------------------------------------
 
-
 def _rows_to_dicts(result) -> list[dict]:
     """Convert SQLAlchemy Result rows to plain dicts."""
     keys = list(result.keys())
@@ -46,7 +45,6 @@ def _rows_to_dicts(result) -> list[dict]:
 # Tool 1 – get_business_profile
 # Used by: business_analyst_agent, risk_analyst_agent
 # ---------------------------------------------------------------------------
-
 
 def get_business_profile(business_id: int) -> str:
     """
@@ -158,7 +156,6 @@ def get_business_profile(business_id: int) -> str:
 # Used by: risk_analyst_agent
 # ---------------------------------------------------------------------------
 
-
 def get_existing_risks(business_id: int, category: Optional[str] = None) -> str:
     """
     Retrieve all existing risk records (and their mitigation actions) for a
@@ -251,7 +248,6 @@ def get_existing_risks(business_id: int, category: Optional[str] = None) -> str:
 # Used by: action_item_creator_agent
 # ---------------------------------------------------------------------------
 
-
 def get_risks_with_actions(business_id: int) -> str:
     """
     Retrieve all risks for a business together with their existing mitigation
@@ -331,6 +327,276 @@ def get_risks_with_actions(business_id: int) -> str:
         return json.dumps(risks, default=str)
 
     except Exception as exc:
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# Tool 4 – create_business
+# Used by: business_analyst_agent
+# ---------------------------------------------------------------------------
+
+def create_business(name: str, description: str) -> str:
+    """
+    Insert a new business record into the database.
+
+    Args:
+        name:        The company's trading name.
+        description: One-paragraph description of what the company makes and does.
+
+    Returns:
+        JSON string with the new business id, name, and description,
+        or an error message if the insert failed.
+    """
+    session = _get_session()
+    try:
+        result = session.execute(
+            text(
+                """
+                INSERT INTO business (name, description)
+                VALUES (:name, :description)
+                RETURNING id, name, description
+                """
+            ),
+            {"name": name, "description": description},
+        ).fetchone()
+        session.commit()
+        return json.dumps({"id": result[0], "name": result[1], "description": result[2]})
+    except Exception as exc:
+        session.rollback()
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# Tool 5 – create_entity
+# Used by: business_analyst_agent
+# ---------------------------------------------------------------------------
+
+def create_entity(
+    business_id: int,
+    name: str,
+    description: str,
+    location: str,
+) -> str:
+    """
+    Insert a new supply-chain entity (factory, warehouse, supplier, OEM, etc.)
+    for a given business.
+
+    Args:
+        business_id: The primary key of the owning business.
+        name:        Short identifying name for the entity (e.g. "Foxconn Shenzhen").
+        description: Role and function of this node in the supply chain
+                     (e.g. "Tier-1 assembly factory producing camera modules").
+        location:    City and country string (e.g. "Shenzhen, China").
+
+    Returns:
+        JSON string with the new entity's id and fields, or an error message.
+    """
+    session = _get_session()
+    try:
+        result = session.execute(
+            text(
+                """
+                INSERT INTO entity (business_id, name, description, location)
+                VALUES (:bid, :name, :description, :location)
+                RETURNING id, business_id, name, description, location
+                """
+            ),
+            {
+                "bid": business_id,
+                "name": name,
+                "description": description,
+                "location": location,
+            },
+        ).fetchone()
+        session.commit()
+        return json.dumps({
+            "id": result[0],
+            "business_id": result[1],
+            "name": result[2],
+            "description": result[3],
+            "location": result[4],
+        })
+    except Exception as exc:
+        session.rollback()
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# Tool 6 – create_item
+# Used by: business_analyst_agent
+# ---------------------------------------------------------------------------
+
+def create_item(
+    business_id: int,
+    name: str,
+    description: str,
+    category: str,
+) -> str:
+    """
+    Insert a new item (raw material, component, or finished product) for a business.
+
+    Args:
+        business_id: The primary key of the owning business.
+        name:        Item name (e.g. "CMOS Image Sensor", "Lithium Cell", "Camera Module A3").
+        description: What this item is, its spec or grade if known.
+        category:    Must be exactly one of: "raw material", "component", "finished product".
+
+    Returns:
+        JSON string with the new item's id and fields, or an error message.
+    """
+    allowed_categories = {"raw material", "component", "finished product"}
+    if category not in allowed_categories:
+        return json.dumps({
+            "error": f"Invalid category '{category}'. Must be one of: {sorted(allowed_categories)}"
+        })
+
+    session = _get_session()
+    try:
+        result = session.execute(
+            text(
+                """
+                INSERT INTO item (business_id, name, description, category)
+                VALUES (:bid, :name, :description, :category)
+                RETURNING id, business_id, category, name, description
+                """
+            ),
+            {
+                "bid": business_id,
+                "name": name,
+                "description": description,
+                "category": category,
+            },
+        ).fetchone()
+        session.commit()
+        return json.dumps({
+            "id": result[0],
+            "business_id": result[1],
+            "category": result[2],
+            "name": result[3],
+            "description": result[4],
+        })
+    except Exception as exc:
+        session.rollback()
+        return json.dumps({"error": str(exc)})
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# Tool 7 – create_route
+# Used by: business_analyst_agent
+# ---------------------------------------------------------------------------
+
+def create_route(
+    business_id: int,
+    name: str,
+    description: str,
+    start_entity_id: int,
+    end_entity_id: int,
+    item_id: int,
+    transportation_mode: str,
+    lead_time: int,
+    cost: int,
+) -> str:
+    """
+    Insert a new supply-chain route linking two entities via a transported item.
+
+    Args:
+        business_id:        The primary key of the owning business.
+        name:               Short route label (e.g. "Sensor Factory → Assembly Plant").
+        description:        What this route represents in the supply chain.
+        start_entity_id:    ID of the origin entity (must already exist in DB).
+        end_entity_id:      ID of the destination entity (must already exist in DB).
+        item_id:            ID of the item transported on this route (must already exist).
+        transportation_mode: One of: "air", "sea", "road", "rail", "multimodal".
+        lead_time:          Transit time in days (integer).
+        cost:               Estimated cost per shipment in USD (integer).
+
+    Returns:
+        JSON string with the new route's id and all fields resolved with entity/item
+        names, or an error message.
+    """
+    allowed_modes = {"air", "sea", "road", "rail", "multimodal"}
+    if transportation_mode not in allowed_modes:
+        return json.dumps({
+            "error": f"Invalid transportation_mode '{transportation_mode}'. Must be one of: {sorted(allowed_modes)}"
+        })
+
+    session = _get_session()
+    try:
+        result = session.execute(
+            text(
+                """
+                INSERT INTO route (
+                    business_id, name, description,
+                    start_entity_id, end_entity_id, item_id,
+                    transportation_mode, lead_time, cost
+                )
+                VALUES (
+                    :bid, :name, :description,
+                    :start_eid, :end_eid, :iid,
+                    :mode, :lead_time, :cost
+                )
+                RETURNING id
+                """
+            ),
+            {
+                "bid":       business_id,
+                "name":      name,
+                "description": description,
+                "start_eid": start_entity_id,
+                "end_eid":   end_entity_id,
+                "iid":       item_id,
+                "mode":      transportation_mode,
+                "lead_time": lead_time,
+                "cost":      cost,
+            },
+        ).fetchone()
+        session.commit()
+        new_id = result[0]
+
+        # Return a resolved view so the agent can confirm what was saved
+        resolved = session.execute(
+            text(
+                """
+                SELECT
+                    r.id, r.name, r.description,
+                    se.name AS start_entity, se.location AS start_location,
+                    ee.name AS end_entity,   ee.location AS end_location,
+                    i.name  AS item_name,    i.category  AS item_category,
+                    r.transportation_mode, r.lead_time, r.cost
+                FROM route r
+                JOIN entity se ON se.id = r.start_entity_id
+                JOIN entity ee ON ee.id = r.end_entity_id
+                JOIN item   i  ON i.id  = r.item_id
+                WHERE r.id = :rid
+                """
+            ),
+            {"rid": new_id},
+        ).fetchone()
+
+        return json.dumps({
+            "id":                 resolved[0],
+            "name":               resolved[1],
+            "description":        resolved[2],
+            "start_entity":       resolved[3],
+            "start_location":     resolved[4],
+            "end_entity":         resolved[5],
+            "end_location":       resolved[6],
+            "item_name":          resolved[7],
+            "item_category":      resolved[8],
+            "transportation_mode": resolved[9],
+            "lead_time":          resolved[10],
+            "cost":               resolved[11],
+        })
+    except Exception as exc:
+        session.rollback()
         return json.dumps({"error": str(exc)})
     finally:
         session.close()

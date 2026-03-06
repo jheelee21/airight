@@ -12,7 +12,7 @@ You will receive a company_profile JSON object from the orchestrator containing:
   - company_name:         name of the manufacturer
   - description:          what the business does
   - entity_names:         names of all supply-chain nodes (factories, warehouses, suppliers)
-  - entity_locations:     physical locations of those nodes
+  - entity_locations:     physical locations                                                                                                                                                                                                                                                                                                                          of those nodes
   - item_names:           all materials, components, and finished goods
   - item_categories:      categories of those items (raw material, component, finished product)
   - transportation_modes: logistics modes used across routes
