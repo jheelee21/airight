@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import SecretStr
 from sqlalchemy.orm import Session
-from ..database import get_db
-from ..models.user import User
-from .. import schemas
+from app.database import get_db
+from app.models.user import User
+import app.schemas as schemas
 
-from ..models.business import Business
-from ..schemas.registration import UserRegister
+from app.models.business import Business
+from app.schemas.registration import UserRegister
 
 router = APIRouter(prefix="/api/user", tags=["User"])
 

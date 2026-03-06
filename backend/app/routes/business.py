@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from ..database import get_db
-from ..models.entity import Entity
-from ..models.route import Route
-from ..models.business import Business
-from ..schemas import business as business_schemas
+from app.database import get_db
+from app.models.entity import Entity
+from app.models.route import Route
+from app.models.business import Business
+import app.schemas.business as business_schemas
 
 router = APIRouter(prefix="/api/business", tags=["Business"])
 
@@ -32,8 +32,8 @@ def update_business(business_id: int, business_update: business_schemas.Business
     return db_business
 
 
-from ..models.risk import Risk
-from ..schemas import risk as risk_schemas
+from app.models.risk import Risk
+from app.schemas import risk as risk_schemas
 
 @router.get("/{business_id}/risks", response_model=List[risk_schemas.RiskSchema])
 def get_business_risks(business_id: int, db: Session = Depends(get_db)):
@@ -68,8 +68,8 @@ def get_business_graph(business_id: int, db: Session = Depends(get_db)):
     }
 
 
-from ..models.news import News
-from ..schemas import news as news_schemas
+from app.models.news import News
+from app.schemas import news as news_schemas
 
 @router.get("/{business_id}/news", response_model=List[news_schemas.NewsSchema])
 def get_business_news(business_id: int, db: Session = Depends(get_db)):
