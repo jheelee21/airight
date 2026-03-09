@@ -54,9 +54,9 @@ root_agent = LlmAgent(
         FunctionTool(func=create_news),      # ← ADDED: persist scraped articles
 
         # ── Sub-agent delegation ─────────────────────────────────────────────
-        ThrottledAgentTool(agent=news_scraper_agent,         pause_seconds=0),
-        ThrottledAgentTool(agent=business_analyst_agent,     pause_seconds=0),
-        ThrottledAgentTool(agent=risk_analyst_agent,         pause_seconds=0),
-        ThrottledAgentTool(agent=action_item_creator_agent,  pause_seconds=0),
+        ThrottledAgentTool(agent=news_scraper_agent,         pause_seconds=30),
+        ThrottledAgentTool(agent=business_analyst_agent,     pause_seconds=30),
+        ThrottledAgentTool(agent=risk_analyst_agent,         pause_seconds=30),
+        ThrottledAgentTool(agent=action_item_creator_agent,  pause_seconds=30),
     ],
 )
